@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>딱 하나 이상함 — Day 1 프로토타입</title>
+<!--
+  Day 1 프로토타입 · 목적: "재미있는가?" 하나만 검증한다.
+  일부러 넣지 않은 것 → 타이머 / 점수 / 사운드 / 타이틀 화면 / 재시작 / 저장 / 공유 / 색상
+  이 파일은 나중에 src/*.js 로 분리된다. 지금은 한 파일이 맞다.
+-->
+<style>
+  *{ box-sizing:border-box; margin:0; padding:0 }
+  html,body{ overflow-x:hidden }
+  body{
+    min-height:100dvh; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:20px;
+    background:#111418; color:#8A94A6;
+    font:15px/1.5 -apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+    padding:16px calc(16px + env(safe-area-inset-right)) 16px calc(16px + env(safe-area-inset-left));
+    -webkit-tap-highlight-color:transparent; user-select:none; -webkit-user-select:none;
+  }
+
+  #hud{ font-variant-numeric:tabular-nums; letter-spacing:.02em }
+  #hud b{ color:#E8EDF4; font-size:20px }
+
+  /* 게임판: 어떤 해상도에서도 정사각형, 가로 넘침 없음 */
+  #board{
+    width:min(92vw, 92dvh - 160px, 560px);
+    aspect-ratio:1;
+    display:grid;
+    grid-template-columns:repeat(var(--cols), 1fr);
+    grid-template-rows:repeat(var(--rows), 1fr);
+    gap:var(--gap, 8px);
+    place-content:center;
+  }
+
+  .cell{
+    all:unset;
+    aspect-ratio:1; width:100%;
+    background:#8A94A6; border-radius:14%;
+    cursor:pointer; touch-action:manipulation;
+  }
+  .cell[hidden]{ display:none }
+  .cell.wrong{ background:#FF6B6B }
+
+  #note{ font-size:13px; color:#5A6272; text-align:center; max-width:min(92vw,560px) }
+</style>
+</head>
+<body>
+
+<div id="hud">STAGE <b id="stage">1</b> · <span id="msg">다른 하나를 찾아 누르세요</span></div>
+
+<div id="board" role="group" aria-label="도형 격자"></div>
+
+<div id="note">Day 1 프로토타입 — 타이머·점수·소리 없음. 10번 연속으로 하고 싶은지만 확인합니다.</div>
+
+<script>
+const MAX_CELLS = 48;
+const MIN_TOUCH = 44;   // px — 이 값을 못 지키면 난이도가 아니라 조작 실패가 된다
+const GAP       = 8;
+
+// 차이 축 3종 (Day 2에 10종으로 확장)
+const AXES = [
+  { id:'rotate', easy:20, hard:2.5, css:d => `rotate:${d}deg` },
+  { id:'size',   easy:18, hard:3,   css:d => `scale:${1 + d/100}` },
+  { id:'light',  easy:22, hard:4,   css:d => `filter:brightness(${100 + d}%)` },
+];
+
+const board   = document.getElementById('board');
+const stageEl = document.getElementById('stage');
+const msgEl   = document.getElementById('msg');
+
+// 노드 풀 — 스테이지가 바뀌어도 생성/삭제 0
+const pool = Array.from({ length: MAX_CELLS }, (_, i) => {
+  const el = document.createElement('button');
+  el.className = 'cell';
+  el.type = 'button';
+  el.dataset.i = i;
+  el.setAttribute('aria-label', `칸 ${i + 1}`);
+  board.appendChild(el);
+  return el;
+});
+
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const lerp  = (a, b, t) => a + (b - a) * t;
+
+let n = 1;              // 스테이지 번호
+let stage = null;
+let prevAnswer = -1;
+let locked = false;     // 연속 입력 시 조작 1회 = 결과 1회 보장
+
+function makeStage(no){
+  const t    = Math.min(no / 40, 1);
+  const ease = t * t * (3 - 2 * t);          // 초반 완만, 후반 급격
+
+  let cols = clamp(2 + Math.floor(no / 4), 2, 6);
+  let rows = clamp(3 + Math.floor(no / 3), 3, 8);
+
+  // 44px 보장이 난이도보다 우선한다 — 못 지키면 칸 수를 줄인다
+  const boardPx = board.clientWidth || 320;
+  const cellPx  = (c, r) => Math.min((boardPx - GAP * (c - 1)) / c,
+                                     (boardPx - GAP * (r - 1)) / r);
+  while (cellPx(cols, rows) < MIN_TOUCH && (cols > 2 || rows > 3)){
+    if (cols / rows > 0.7) cols--; else rows--;
+  }
+  if (cols * rows > MAX_CELLS) rows = Math.floor(MAX_CELLS / cols);
+
+  const axis  = AXES[Math.floor(Math.random() * AXES.length)];   // Day 2에 시드 RNG로 교체
+  const delta = lerp(axis.easy, axis.hard, ease) * (0.85 + Math.random() * 0.3);
+
+  const total = cols * rows;
+  let answer;
+  do { answer = Math.floor(Math.random() * total); } while (answer === prevAnswer && total > 1);
+  prevAnswer = answer;
+
+  return { no, cols, rows, total, answer, axis, delta };
+}
+
+function render(s){
+  board.style.setProperty('--cols', s.cols);
+  board.style.setProperty('--rows', s.rows);
+  board.style.setProperty('--gap', GAP + 'px');
+  for (let i = 0; i < MAX_CELLS; i++){
+    const el = pool[i];
+    if (i >= s.total){ el.hidden = true; continue; }
+    el.hidden = false;
+    el.classList.remove('wrong');
+    el.style.cssText = (i === s.answer) ? s.axis.css(s.delta) : '';
+  }
+  stageEl.textContent = s.no;
+}
+
+function next(){
+  stage = makeStage(n);
+  render(stage);
+}
+
+board.addEventListener('pointerdown', e => {
+  const cell = e.target.closest('.cell');
+  if (!cell || locked || cell.hidden) return;
+  locked = true;
+  setTimeout(() => { locked = false; }, 120);
+
+  if (Number(cell.dataset.i) === stage.answer){
+    n++;
+    msgEl.textContent = `찾았습니다 · ${stage.axis.id} 차이 ${stage.delta.toFixed(1)}`;
+    next();
+  } else {
+    cell.classList.add('wrong');
+    msgEl.textContent = '아닙니다';
+    setTimeout(() => cell.classList.remove('wrong'), 200);
+  }
+}, { passive:true });
+
+// 창 크기가 바뀌면 44px 보장이 깨질 수 있으므로 현재 판을 다시 계산해 그린다
+addEventListener('resize', () => { if (stage) render(stage = makeStage(n)); });
+
+next();
+</script>
+</body>
+</html>

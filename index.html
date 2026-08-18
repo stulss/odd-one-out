@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>딱 하나 이상함</title>
+<meta name="description" content="여러 개 중 딱 하나만 다릅니다. 제한 시간 안에 찾으세요.">
+<meta name="theme-color" content="#0E1116">
+<meta property="og:title" content="딱 하나 이상함">
+<meta property="og:description" content="이 중에 딱 하나만 달라요. 찾을 수 있나요?">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230E1116'/%3E%3Crect x='5' y='5' width='9' height='9' rx='2' fill='%233D6BFF'/%3E%3Crect x='18' y='5' width='9' height='9' rx='2' fill='%233D6BFF'/%3E%3Crect x='5' y='18' width='9' height='9' rx='2' fill='%233D6BFF'/%3E%3Crect x='18' y='18' width='9' height='9' rx='2' fill='%235EE6C5' transform='rotate(10 22.5 22.5)'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#0E1116; --bg-soft:#161B22; --line:#232A34;
+  --ink:#E8EDF4; --ink-dim:#8A94A6; --ink-faint:#5A6272;
+  --brand:#5EE6C5; --warn:#FFB454; --bad:#FF6B6B;
+}
+*{ box-sizing:border-box; margin:0; padding:0 }
+html,body{ overflow-x:hidden; height:100% }
+body{
+  background:var(--bg); color:var(--ink);
+  font:15px/1.55 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo",Pretendard,"Malgun Gothic",sans-serif;
+  -webkit-tap-highlight-color:transparent; user-select:none; -webkit-user-select:none;
+  overscroll-behavior:none;
+}
+button{ font:inherit; color:inherit; cursor:pointer; border:0; background:none }
+
+#app{
+  position:relative;
+  display:grid; grid-template-rows:auto 1fr auto;
+  height:100dvh; max-width:720px; margin:0 auto;
+  padding:calc(10px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right))
+          calc(10px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left));
+  gap:10px;
+}
+
+/* ── 헤더 ─────────────────────────────────────────── */
+#hud{ display:grid; gap:8px }
+#gaugeTrack{ height:6px; background:var(--line); border-radius:99px; overflow:hidden }
+#gauge{ height:100%; background:var(--brand); transform-origin:left; transform:scaleX(1);
+        transition:background .2s linear }
+#gauge.warn{ background:var(--warn) }
+#hudRow{ display:flex; align-items:center; gap:10px; font-variant-numeric:tabular-nums }
+#hudRow .k{ color:var(--ink-faint); font-size:12px; letter-spacing:.06em }
+#hudRow b{ font-size:20px }
+#hudRow .sp{ margin-left:auto; display:flex; gap:4px }
+.icon{ width:38px; height:38px; border-radius:10px; background:var(--bg-soft);
+       display:grid; place-items:center; font-size:15px; color:var(--ink-dim) }
+.icon:hover{ color:var(--ink) }
+
+/* ── 게임판 ───────────────────────────────────────── */
+#stageArea{ display:grid; place-items:center; min-height:0 }
+#board{
+  display:grid;
+  grid-template-columns:repeat(var(--cols,4), 1fr);
+  grid-template-rows:repeat(var(--rows,6), 1fr);
+  gap:8px;
+}
+.cell{
+  width:100%; height:100%; border-radius:18%;
+  background:hsl(var(--hue,224) 62% 58%);
+  transition:transform .12s ease, background .12s linear;
+}
+.cell.shape-circle{ border-radius:50% }
+.cell.shape-diamond{ clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%); border-radius:0 }
+.cell.shape-hexagon{ clip-path:polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%); border-radius:0 }
+.cell:focus-visible{ outline:3px solid var(--brand); outline-offset:3px }
+.cell.is-correct{ animation:pop .22s ease }
+.cell.is-wrong{ animation:shake .22s ease; background:var(--bad) !important }
+.cell.is-answer{ outline:3px solid var(--brand); outline-offset:4px }
+@keyframes pop{ 50%{ transform:scale(1.18) } }
+@keyframes shake{ 25%{ transform:translateX(-6px) } 75%{ transform:translateX(6px) } }
+
+/* 움직임 줄이기 — 효과를 없애지 않고 '색 점멸'로 대체한다 (사건 인지는 유지) */
+:root[data-reduced="on"] .cell{ transition:background .12s linear }
+:root[data-reduced="on"] .cell.is-correct{ animation:none; background:var(--brand) !important }
+:root[data-reduced="on"] .cell.is-wrong{ animation:none }
+:root[data-reduced="on"] .overlay{ animation:none }
+@media (prefers-reduced-motion:reduce){
+  .cell.is-correct,.cell.is-wrong{ animation:none }
+}
+
+/* ── 하단 상시 정보 (과제 완료기준 1) ─────────────── */
+#info{ font-size:12.5px; color:var(--ink-faint); line-height:1.7; border-top:1px solid var(--line); padding-top:8px }
+#info b{ color:var(--ink-dim); font-weight:600 }
+#statusLine{ color:var(--brand) }
+
+/* ── 오버레이 화면 ────────────────────────────────── */
+.overlay{
+  position:absolute; inset:0; z-index:5;
+  display:none; flex-direction:column; align-items:center; justify-content:center;
+  gap:14px; padding:24px; text-align:center;
+  background:rgba(14,17,22,.94); backdrop-filter:blur(4px);
+  animation:fade .18s ease;
+}
+@keyframes fade{ from{ opacity:0 } }
+#app[data-screen="TITLE"]  #screenTitle,
+#app[data-screen="PAUSED"] #screenPause,
+#app[data-screen="RESULT"] #screenResult{ display:flex }
+
+h1{ font-size:30px; letter-spacing:-.02em }
+.sub{ color:var(--ink-dim); font-size:14px }
+.rules{ background:var(--bg-soft); border:1px solid var(--line); border-radius:14px;
+        padding:14px 16px; font-size:13.5px; color:var(--ink-dim); text-align:left;
+        max-width:340px; line-height:1.8 }
+.rules b{ color:var(--ink) }
+.btn{ min-width:240px; padding:15px 20px; border-radius:14px; font-weight:700;
+      background:var(--brand); color:#08221C; transition:filter .15s }
+.btn:hover{ filter:brightness(1.08) }
+.btn.ghost{ background:var(--bg-soft); color:var(--ink); border:1px solid var(--line) }
+.big{ font-size:76px; font-weight:800; line-height:1; font-variant-numeric:tabular-nums }
+#resultBest{ color:var(--ink-dim); font-size:14px }
+#resultBest.is-best{ color:var(--brand); font-weight:700 }
+#cardCanvas{ width:150px; height:187px; border-radius:10px; border:1px solid var(--line) }
+#rivalBanner{ color:var(--warn); font-size:13px }
+#fallback{ display:flex; gap:8px; flex-wrap:wrap; justify-content:center }
+#fallback .btn{ min-width:0; padding:11px 14px; font-size:13px }
+
+/* ── 설정 시트 ────────────────────────────────────── */
+#settings{ position:absolute; inset:auto 0 0 0; z-index:9;
+  background:var(--bg-soft); border-top:1px solid var(--line);
+  border-radius:18px 18px 0 0; padding:18px 18px calc(18px + env(safe-area-inset-bottom));
+  display:grid; gap:12px; max-height:88dvh; overflow:auto }
+#settings[hidden]{ display:none }
+.row{ display:flex; align-items:center; gap:12px; font-size:14px }
+.row label{ flex:1 }
+.row input[type=range]{ flex:1 }
+.hint{ font-size:12px; color:var(--ink-faint); line-height:1.6 }
+pre#logSummary{ font:12px/1.7 ui-monospace,Menlo,Consolas,monospace; color:var(--ink-dim);
+  background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:10px;
+  white-space:pre-wrap; max-height:130px; overflow:auto }
+
+#toast{ position:absolute; left:50%; bottom:80px; transform:translate(-50%,10px); z-index:20;
+  background:var(--ink); color:var(--bg); padding:10px 16px; border-radius:99px; font-size:13px;
+  font-weight:600; opacity:0; pointer-events:none; transition:opacity .2s, transform .2s }
+#toast.show{ opacity:1; transform:translate(-50%,0) }
+
+@media (min-width:900px){ #board{ gap:10px } h1{ font-size:34px } }
+</style>
+</head>
+<body>
+
+<div id="app" data-screen="TITLE">
+
+  <header id="hud">
+    <div id="gaugeTrack"><div id="gauge"></div></div>
+    <div id="hudRow">
+      <span class="k">STAGE</span><b id="stageNo">1</b>
+      <span class="k">SCORE</span><b id="points">0</b>
+      <span class="sp">
+        <button class="icon" id="btnPause" type="button" title="일시정지 (P)" aria-label="일시정지">❙❙</button>
+        <button class="icon" id="btnSettings" type="button" title="설정" aria-label="설정">⚙</button>
+      </span>
+    </div>
+  </header>
+
+  <main id="stageArea">
+    <div id="board" role="group" aria-label="도형 격자"></div>
+  </main>
+
+  <footer id="info">
+    <div><b>규칙</b> 여러 개 중 딱 하나만 다릅니다. 제한 시간 안에 그것을 찾으세요. 오답은 시간 1초 차감.</div>
+    <div><b>조작</b> 클릭·터치 · 방향키로 이동 후 Enter · P 또는 Esc로 일시정지</div>
+    <div id="statusLine">상태: 대기 중 · 단계 1 · 난이도 T=4.4</div>
+  </footer>
+
+  <!-- ── TITLE ── -->
+  <section class="overlay" id="screenTitle">
+    <h1>딱 하나 이상함</h1>
+    <div class="sub" id="challengeLabel">자유 플레이</div>
+    <div class="rules">
+      <b>여러 개 중 딱 하나만 다릅니다.</b><br>
+      제한 시간 안에 다른 하나를 찾아 누르세요.<br>
+      맞히면 다음 단계, 시간이 0이 되면 종료됩니다.<br>
+      오답을 누르면 남은 시간이 1초 줄어듭니다.
+    </div>
+    <div id="rivalBanner" hidden></div>
+    <button class="btn" id="btnStart" type="button">▶ 시작하기</button>
+    <button class="btn ghost" id="btnDaily" type="button">오늘의 문제</button>
+    <div class="sub" id="bestLine">아직 기록이 없습니다</div>
+  </section>
+
+  <!-- ── PAUSE ── -->
+  <section class="overlay" id="screenPause">
+    <h1>일시정지</h1>
+    <div class="sub">타이머가 멈췄습니다.</div>
+    <button class="btn" id="btnResume" type="button">계속하기</button>
+    <button class="btn ghost" id="btnToTitle" type="button">처음으로</button>
+  </section>
+
+  <!-- ── RESULT ── -->
+  <section class="overlay" id="screenResult">
+    <div class="sub" id="resultTitle">실패 — 시간 초과</div>
+    <div class="big" id="resultStages">0</div>
+    <div class="sub">단계</div>
+    <div id="resultBest">최고 0단계</div>
+    <div class="sub" id="resultSub"></div>
+    <canvas id="cardCanvas" aria-label="결과 카드 미리보기"></canvas>
+    <button class="btn" id="btnRestart" type="button">🔁 다시 하기</button>
+    <button class="btn ghost" id="btnShare" type="button">📤 결과 공유</button>
+    <div id="fallback" hidden>
+      <button class="btn ghost" id="fbCopyText" type="button">텍스트 복사</button>
+      <button class="btn ghost" id="fbCopyUrl" type="button">링크 복사</button>
+      <button class="btn ghost" id="fbSaveImg" type="button">이미지 저장</button>
+    </div>
+    <button class="btn ghost" id="btnResultTitle" type="button">처음으로</button>
+  </section>
+
+  <!-- ── SETTINGS ── -->
+  <section id="settings" hidden aria-label="설정">
+    <div class="row"><label for="optSound">소리</label>
+      <input type="checkbox" id="optSound" checked></div>
+    <div class="row"><label for="optMotion">움직임 줄이기</label>
+      <input type="checkbox" id="optMotion"></div>
+    <div class="row"><label for="tuneOut2">난이도 T = <span id="tuneOut">4.4</span></label>
+      <input type="range" id="tuneOut2" min="2.6" max="5.4" step="0.2" value="4.4"></div>
+    <div class="hint">T가 클수록 단계마다 제한 시간이 빨리 줄어듭니다. 난이도에 영향을 주는 값은 이 하나뿐입니다.</div>
+    <div class="row"><label>기록한 판 수</label><b id="logCount">0</b></div>
+    <pre id="logSummary">아직 기록이 없습니다</pre>
+    <div class="row" style="gap:8px">
+      <button class="btn ghost" id="btnCSV" type="button" style="min-width:0;flex:1">기록 CSV 복사</button>
+      <button class="btn ghost" id="btnReset" type="button" style="min-width:0;flex:1">기록 초기화</button>
+    </div>
+    <button class="btn" id="btnCloseSettings" type="button">닫기</button>
+  </section>
+
+  <div id="toast" role="status" aria-live="polite"></div>
+</div>
+
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
