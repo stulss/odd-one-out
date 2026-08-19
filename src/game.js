@@ -215,15 +215,16 @@ export function createGame(){
     const url = shareUrl(challenge, stages);
     const text = `딱 하나 이상함 — ${stages}단계\n${challengeLabel(challenge)}, 넘어볼래?`;
     el.fallback.hidden = true;
+    el.fallback.dataset.text = text + '\n' + url;
+    el.fallback.dataset.url = url;
     const r = await Share.share({
       blob: cardBlob, text, url,
-      onFallback: () => {
-        el.fallback.hidden = false;
-        el.fallback.dataset.text = text + '\n' + url;
-        el.fallback.dataset.url = url;
-      },
+      onFallback: () => { el.fallback.hidden = false; },
       onToast: toast,
     });
+    // 이미지를 클립보드에 넣었더라도 링크 복사·이미지 저장은 남겨둔다.
+    // 주 동작은 이미 끝났고, 링크만 필요한 사람의 선택지를 없앨 이유가 없다.
+    if (r === 'clipboard-image') el.fallback.hidden = false;
     if (r === 'files' || r === 'text') toast('공유했습니다');
   }
 
