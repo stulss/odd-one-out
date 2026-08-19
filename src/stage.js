@@ -31,6 +31,9 @@ const AXIS_IDS = Object.keys(DIFF_AXES);
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 const lerp  = (a, b, t) => a + (b - a) * t;
 
+// 난이도 상수의 기준값. T = T_BASE 이면 기존과 같은 속도로 좁혀진다.
+export const T_BASE = 4.4;
+
 /**
  * @param rootKey 시드 문자열 (오늘의 문제 키 / 도전장 코드 / 자유 플레이 시드)
  * @param n       스테이지 번호 (1부터)
@@ -48,11 +51,19 @@ export function makeStage(rootKey, n, tuneT, prev){
   const axis = AXIS_IDS[Math.floor(rnd() * AXIS_IDS.length)];
   const spec = DIFF_AXES[axis];
 
+  // ── 난이도 손잡이를 '차이 곡선'에 건다 ────────────────────────
+  // 이전에는 T가 제한 시간만 줄였는데, 자동 플레이 30판으로 재보니
+  // 시간이 부족해지는 시점(30단계)이 판이 끝나는 시점(20~25단계)보다 늦어서
+  // T를 50% 바꿔도 도달 단계가 1.5단계밖에 안 움직였다.
+  // 판을 실제로 끝내는 것은 '차이가 좁아져 못 찾는 것'이므로 거기에 건다.
+  const dEase = clamp(ease * (tuneT / T_BASE), 0, 1);
+
   // delta: easy → hard 로 좁혀지되 ±15% 흔들어 패턴 학습을 막는다
-  let delta = lerp(spec.easy, spec.hard, ease) * (0.85 + rnd() * 0.3);
+  let delta = lerp(spec.easy, spec.hard, dEase) * (0.85 + rnd() * 0.3);
   delta = Math.max(delta, spec.min);                // 공정성: 지각 임계값 아래로 내려가지 않는다
 
-  const timeLimit = Math.max(1.6, 6.0 - ease * tuneT) + (total > 16 ? 0.5 : 0);
+  // 제한 시간은 고정 계수를 쓴다. 손잡이는 위의 차이 곡선 하나뿐이다.
+  const timeLimit = Math.max(1.6, 6.0 - ease * T_BASE) + (total > 16 ? 0.5 : 0);
 
   let answer = Math.floor(rnd() * total);
   if (prev && total > 1 && answer === prev.answer) answer = (answer + 1 + Math.floor(rnd() * (total - 1))) % total;
