@@ -105,7 +105,7 @@ odd-one-out/
 | [AI_3줄.md](AI_3줄.md) | AI에게 맡긴 일 / 내가 판단한 일 / AI 말을 안 들은 일 |
 | [포트폴리오_추가용_소개글.md](포트폴리오_추가용_소개글.md) | 개인 포트폴리오에 이 프로젝트를 추가할 때 쓰는 소개글 |
 | [docs/06_프로젝트기록.md](docs/06_프로젝트기록.md) | 개요·역할·수치 성과·Before/After 중심 프로젝트 기록 |
-| 과제제출보고서.pdf | 위 문서들을 묶은 제출용 PDF (25쪽, 버튼 동작 전/후 사진 20장 포함) |
+| 과제제출보고서.pdf | 제출용 PDF **41쪽 · 이미지 89장** — 버튼 동작 전/후 15쌍 + 단계별 구현 60장 |
 | [docs/01_게임기획.md](docs/01_게임기획.md) | 기술 스택·UI·시스템·알고리즘 전체 설계 |
 | [docs/05_배포.md](docs/05_배포.md) | 배포처 비교와 GitHub Pages 선택 근거·절차 |
 | [prototype/STEPS.md](prototype/STEPS.md) | 단계별 실제 구현·검증 기록 (STEP 1~6 전부 완료) |
@@ -119,7 +119,8 @@ odd-one-out/
 pip install reportlab playwright && python tools/shot_actions.py && python tools/build_report.py
 ```
 
-- `tools/shot_actions.py` — 공개 주소에서 버튼 동작 **전/후** 20장 촬영
+- `tools/shot_actions.py` — 공개 주소에서 버튼 동작 **전/후 15쌍(30장)** 촬영
+  (시작·정답·오답·일시정지·설정·소리·움직임·난이도T·종료·공유·텍스트복사·링크복사·이미지저장·다시하기·처음으로)
   (전·후 이미지가 같으면 "화면이 안 바뀐 것"이므로 자동으로 잡아냅니다)
 - `tools/build_report.py` — 검증안내서 + 전/후 사진 + AI 3줄 + 트러블슈팅 + 프로젝트기록을 묶어 PDF 생성
 
