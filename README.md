@@ -72,15 +72,16 @@ odd-one-out/
 │  ├─ share.js                 Web Share API + 폴백 3종
 │  ├─ audio.js                 WebAudio 효과음 합성
 │  └─ logger.js                플레이 기록 · CSV · 난이도별 중앙값
-├─ prototype/
-│  ├─ day1~day6/               되짚어 재구성한 단계별 데모 (동결)
-│  └─ minigame_test/           실제 순서대로 만든 단계별 구현 step1~6 + 증거 스크린샷 60장
+├─ prototype/                  단계별 실제 구현 기록 (동결)
+│  ├─ STEPS.md                 각 단계에서 무엇을 추가하고 무엇을 측정했는지
+│  ├─ step1~step6/             단계별 완전 실행본
+│  ├─ shots/                   증거 스크린샷 60장 (3상태 × 4해상도)
+│  └─ shot.py                  촬영 스크립트 (Playwright)
 └─ docs/                       설계 문서
 ```
 
-**단계별 실제 구현 기록은 별도 폴더에 있습니다** → [`prototype/minigame_test/`](prototype/minigame_test/STEPS.md)
+**단계별 실제 구현 기록** → [`prototype/`](prototype/STEPS.md)
 `step1`~`step6`을 한 단계씩 실제로 만들고 검증한 순서가 그대로 남아 있습니다.
-(`odd-one-out/prototype/`은 나중에 되짚어 재구성한 데모라 성격이 다릅니다.)
 
 ## 특징
 
@@ -104,7 +105,7 @@ odd-one-out/
 | [docs/06_프로젝트기록.md](docs/06_프로젝트기록.md) | 개요·역할·수치 성과·Before/After 중심 프로젝트 기록 |
 | [docs/01_게임기획.md](docs/01_게임기획.md) | 기술 스택·UI·시스템·알고리즘 전체 설계 |
 | [docs/05_배포.md](docs/05_배포.md) | 배포처 비교와 GitHub Pages 선택 근거·절차 |
-| [prototype/minigame_test/STEPS.md](prototype/minigame_test/STEPS.md) | 단계별 실제 구현·검증 기록 (STEP 1~6 전부 완료) |
+| [prototype/STEPS.md](prototype/STEPS.md) | 단계별 실제 구현·검증 기록 (STEP 1~6 전부 완료) |
 
 ## 현재 상태
 

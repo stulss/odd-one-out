@@ -29,7 +29,7 @@ minigame_test/
 ## 실행
 
 ```bash
-python -u "<프로젝트 루트>/.claude/serve.py" 8125 prototype/minigame_test
+python -u "<프로젝트 루트>/.claude/serve.py" 8125 prototype
 ```
 
 그 다음 `http://localhost:8125/step2/` 처럼 단계별로 열어 비교합니다.
