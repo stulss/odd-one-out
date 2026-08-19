@@ -36,18 +36,33 @@ def main():
 
     pres = app.Presentations.Open(SRC, WithWindow=False)
     try:
-        pres.SaveAs(DST, FORMAT_PDF)
+        target = DST
+        for attempt in range(4):
+            try:
+                pres.SaveAs(target, FORMAT_PDF)
+                break
+            except Exception as e:
+                if attempt == 3:
+                    # 대상이 계속 잠겨 있으면(다른 프로그램이 열어 보고 있는 경우 등)
+                    # 작업 자체가 막히지 않도록 다른 이름으로 저장한다.
+                    target = os.path.splitext(DST)[0] + "_new.pdf"
+                    print(f"경고: '{DST}'를 계속 쓸 수 없어 '{target}'로 대신 저장합니다.")
+                    print(f"      (파일을 보고 있는 프로그램을 닫고 이 파일로 교체하세요)")
+                    pres.SaveAs(target, FORMAT_PDF)
+                else:
+                    time.sleep(1.5)
+        DST_FINAL = target
     finally:
         pres.Close()
         app.Quit()
 
     for _ in range(20):
-        if os.path.exists(DST) and os.path.getsize(DST) > 1000:
+        if os.path.exists(DST_FINAL) and os.path.getsize(DST_FINAL) > 1000:
             break
         time.sleep(0.5)
 
-    if not os.path.exists(DST):
+    if not os.path.exists(DST_FINAL):
         sys.exit("변환 실패 — 출력 파일이 생성되지 않았습니다.")
-    print(f"변환 완료: {DST} ({os.path.getsize(DST)/1024:.0f}KB)")
+    print(f"변환 완료: {DST_FINAL} ({os.path.getsize(DST_FINAL)/1024:.0f}KB)")
 
 main()

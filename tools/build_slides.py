@@ -156,6 +156,46 @@ def table_slide(s, headers, rows, l, t, w, h, col_w=None, header_fill=LINE, font
                 for r in p.runs: r.font.size = Pt(font_size); r.font.color.rgb = INK_DIM; r.font.name = FONT
     return gt
 
+def evidence_cell(s, x, y, w, h, num, title, imgs, note=None):
+    """체크리스트 항목 1개를 '번호+제목 / 스크린샷 1~2장 / 캡션' 카드로 그린다.
+    imgs: [(경로, 캡션), ...] 최대 2장. 세로형·가로형 스크린샷 모두 지원."""
+    card = s.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, x, y, w, h)
+    card.fill.solid(); card.fill.fore_color.rgb = BG_SOFT
+    card.line.color.rgb = LINE; card.line.width = Pt(0.75); card.shadow.inherit = False
+
+    _, tf = box(s, x + Inches(0.12), y + Inches(0.06), w - Inches(0.24), Inches(0.4))
+    p = tf.paragraphs[0]; p.alignment = PP_ALIGN.LEFT
+    r = p.add_run(); r.text = f"{num}. {title}"
+    r.font.size = Pt(12.5); r.font.bold = True; r.font.color.rgb = BRAND; r.font.name = FONT
+
+    if imgs:
+        from PIL import Image
+        img_top = y + Inches(0.5)
+        img_h = h - Inches(0.5) - (Inches(0.32) if note else Inches(0.12))
+        ars = []
+        for p_, _ in imgs:
+            if os.path.exists(p_):
+                im = Image.open(p_); ars.append(im.width / im.height)
+            else:
+                ars.append(0.462)
+        gap = Inches(0.12)
+        avail = w - Inches(0.24) - gap * (len(imgs) - 1)
+        max_h_by_w = Emu(int(avail / sum(ars))) if sum(ars) > 0 else img_h
+        use_h = min(img_h, max_h_by_w)
+        widths = [int(use_h * ar) for ar in ars]
+        total = sum(widths) + gap * (len(imgs) - 1)
+        l = x + (w - total) / 2
+        for (p_, cap), wpx in zip(imgs, widths):
+            img(s, p_, l, img_top, use_h)
+            l += wpx + gap
+        note_top = img_top + use_h + Inches(0.03)
+    else:
+        note_top = y + Inches(0.55)
+
+    if note:
+        _, tf2 = box(s, x + Inches(0.12), note_top, w - Inches(0.24), Inches(0.3))
+        para(tf2, note, 10, color=INK_DIM, align=PP_ALIGN.CENTER, first=True, space_after=0)
+
 def read_csv(p):
     if not os.path.exists(p): return []
     with open(p, encoding='utf-8-sig') as f:
@@ -485,28 +525,40 @@ table_slide(s, ["항목", "결과", "상태"], rows,
             col_w=[Inches(4.5), Inches(2.7), Inches(1.3)], font_size=16)
 
 # ═══════════════════════════════════════════════════════════
-# 17b. 필수 체크리스트 — 11항목 + 증빙자료
+# 17b/17c. 필수 체크리스트 — 11항목, 스크린샷 증거 갤러리 (2장)
 # ═══════════════════════════════════════════════════════════
-s = track(new_slide())
-title_bar(s, "필수 체크리스트", "학생 자체 점검 11항목 — 증빙자료")
-checklist = [
-    ["1", "공개 주소에서 시작→종료→재시작 가능", "배포 URL 직접 실행"],
-    ["2", "핵심 조작과 성공·실패 상태가 화면에서 구분", "슬라이드 3 (카드1 스크린샷)"],
-    ["3", "두 기준 해상도에서 잘림·가로 넘침 없음", "슬라이드 9 검사표 (1366×768·1920×1080 실측)"],
-    ["4", "연속 입력·포커스·일시정지·10분 실행 검사 통과", "슬라이드 9~10, 10분_안정성_로그.csv"],
-    ["5", "콘솔 빨간 오류 0건", "전 슬라이드 공통 확인"],
-    ["6", "전·후 각 10회 기록, 난이도 값 1개만 변경", "슬라이드 11, 카드3_플레이로그_자동.csv"],
-    ["7", "저장값이 비거나 손상돼도 기본값으로 실행", "슬라이드 12 (손상값 6종)"],
-    ["8", "현재 판 초기화 + 보존 대상 기록 유지", "슬라이드 12"],
-    ["9", "효과를 줄이거나 끄는 선택이 작동", "슬라이드 13 (카드5 스크린샷)"],
-    ["10", "공개 화면·파일·제출 기록에 개인정보·비밀값 0건", "저장소 전수 grep 검사"],
-    ["11", "위 항목 1~10 모두 완료", "본 슬라이드 요약"],
+D = "img/difficulty"; A = "img/actions"; ST = "img/stability"; EV = "img/evidence"
+
+items_p1 = [
+    ("1", "시작→종료→재시작", [(f"{A}/01_start_after.png","시작"), (f"{A}/08_gameover_after.png","종료")], None),
+    ("2", "성공·실패 상태 구분", [(f"{A}/02_correct_after.png","정답→다음단계"), (f"{A}/03_wrong_after.png","오답→시간차감")], None),
+    ("3", "2해상도 잘림·넘침 없음", [(f"{EV}/resolution_1366x768.png","1366×768"), (f"{EV}/resolution_1920x1080.png","1920×1080")], None),
+    ("4", "연속입력·포커스·10분", [(f"{A}/04_pause_after.png","일시정지"), (f"{ST}/t600_10min.png","10분 도달")], None),
+    ("5", "콘솔 빨간 오류 0건", [], "DevTools Console — 전 슬라이드 검증마다 0건 확인"),
+    ("6", "난이도 전/후 10+10", [(f"{D}/result_T4_4.png","T=4.4 결과"), (f"{D}/result_T5_4.png","T=5.4 결과")], None),
 ]
-rows_status = [[n, item, "완료", ev] for n, item, ev in checklist]
-table_slide(s, ["#", "체크리스트 항목", "상태", "증빙자료"], rows_status,
-            Inches(0.7), Inches(1.75), Inches(11.9), Inches(5.35),
-            col_w=[Inches(0.55), Inches(5.05), Inches(1.1), Inches(5.2)], font_size=12,
-            left_cols={1, 3})
+items_p2 = [
+    ("7", "손상값 → 기본값 실행", [(f"{EV}/storage_before_normal.png","손상 전(최고 5단계)"), (f"{EV}/storage_after_corrupted_still_works.png","손상 후(정상 실행)")], None),
+    ("8", "재시작=초기화, 기록 유지", [(f"{A}/13_restart_before.png","결과 화면"), (f"{A}/13_restart_after.png","초기화+최고기록")], None),
+    ("9", "효과 줄이기·끄기 작동", [(f"{A}/06_sound_after.png","소리 끄기"), (f"{A}/07_motion_after.png","움직임 줄이기")], None),
+    ("10", "개인정보·비밀값 0건", [], "저장소 전수 grep 검사 — stulss(공개 계정명) 외 유출 0건"),
+    ("11", "위 1~10 모두 완료", [], "카드 1~5 통과기준 5/5 · 학생 자체 점검 11/11"),
+]
+
+def checklist_gallery_slide(kicker, title, items):
+    s = track(new_slide())
+    title_bar(s, kicker, title)
+    cols, rows_n = 3, 2
+    gx0, gy0 = Inches(0.5), Inches(1.75)
+    cw, ch, ggap = Inches(4.0), Inches(2.62), Inches(0.15)
+    for i, (num, t, imgs, note) in enumerate(items):
+        r, c = divmod(i, cols)
+        x = gx0 + c * (cw + ggap); y = gy0 + r * (ch + ggap)
+        evidence_cell(s, x, y, cw, ch, num, t, imgs, note)
+    return s
+
+checklist_gallery_slide("필수 체크리스트 · 증거 1/2", "학생 자체 점검 — 스크린샷 증거 (1~6)", items_p1)
+checklist_gallery_slide("필수 체크리스트 · 증거 2/2", "학생 자체 점검 — 스크린샷 증거 (7~11)", items_p2)
 
 # ═══════════════════════════════════════════════════════════
 # 18. 마무리
