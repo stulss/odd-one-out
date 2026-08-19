@@ -1,0 +1,8 @@
+# 로컬 도구가 만드는 파일
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db
+
+# 로컬 개발 서버 설정 (사용자 환경에 종속)
+.claude/

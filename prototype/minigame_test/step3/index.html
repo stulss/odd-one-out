@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>딱 하나 이상함 — STEP 3</title>
+<style>
+:root{
+  --bg:#0E1116; --soft:#161B22; --line:#232A34;
+  --ink:#E8EDF4; --dim:#8A94A6; --faint:#5A6272;
+  --brand:#5EE6C5; --warn:#FFB454; --bad:#FF6B6B;
+}
+*{ box-sizing:border-box; margin:0; padding:0 }
+html,body{ overflow-x:hidden; height:100% }
+body{
+  background:var(--bg); color:var(--ink);
+  font:15px/1.55 -apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  -webkit-tap-highlight-color:transparent; user-select:none; -webkit-user-select:none;
+}
+button{ font:inherit; color:inherit; border:0; background:none; cursor:pointer }
+
+/* 세로 3분할: 헤더 / 게임판 / 상시 표시줄
+   게임판이 1fr을 차지하고, 셀 크기는 JS가 그 실제 높이에 맞춰 계산한다.
+   이렇게 해야 어떤 해상도에서도 판이 잘리거나 넘치지 않는다. */
+#app{
+  position:relative;
+  display:grid; grid-template-rows:auto 1fr auto;
+  height:100vh; height:100dvh;   /* dvh 미지원 환경 폴백 */
+  max-width:720px; margin:0 auto; gap:10px;
+  padding:calc(10px + env(safe-area-inset-top)) 12px calc(10px + env(safe-area-inset-bottom));
+}
+
+#track{ height:6px; background:var(--line); border-radius:99px; overflow:hidden }
+#fill{ height:100%; background:var(--brand); transform-origin:left; transform:scaleX(1) }
+#fill.warn{ background:var(--warn) }
+#hudRow{ display:flex; align-items:center; gap:10px; margin-top:8px; font-variant-numeric:tabular-nums }
+#hudRow .k{ color:var(--faint); font-size:12px; letter-spacing:.06em }
+#hudRow b{ font-size:20px }
+#hudRow .sp{ margin-left:auto }
+.icon{ width:38px; height:38px; border-radius:10px; background:var(--soft);
+       display:grid; place-items:center; color:var(--dim) }
+
+#area{ display:grid; place-items:center; min-height:0 }
+#board{
+  display:grid;
+  grid-template-columns:repeat(var(--cols,2), 1fr);
+  grid-template-rows:repeat(var(--rows,3), 1fr);
+  gap:8px;
+}
+.cell{
+  width:100%; height:100%; border-radius:16%;
+  background:var(--dim);
+  transition:transform .12s ease, background .12s linear;
+}
+.cell[hidden]{ display:none }
+.cell.wrong{ background:var(--bad) }
+.cell.answer{ outline:3px solid var(--brand); outline-offset:4px }
+
+/* 규칙·조작·상태 — 항상 보인다 */
+#info{ font-size:12.5px; color:var(--faint); line-height:1.7;
+       border-top:1px solid var(--line); padding-top:8px }
+#info b{ color:var(--dim); font-weight:600 }
+#status{ color:var(--brand) }
+
+.ov{
+  position:absolute; inset:0; z-index:5;
+  display:none; flex-direction:column; align-items:center; justify-content:center;
+  gap:14px; padding:24px; text-align:center; background:rgba(14,17,22,.94);
+}
+#app[data-screen="TITLE"]  #ovTitle,
+#app[data-screen="PAUSE"]  #ovPause,
+#app[data-screen="RESULT"] #ovResult{ display:flex }
+
+h1{ font-size:30px; letter-spacing:-.02em }
+.sub{ color:var(--dim); font-size:14px }
+.rules{ background:var(--soft); border:1px solid var(--line); border-radius:14px;
+        padding:14px 16px; font-size:13.5px; color:var(--dim);
+        text-align:left; max-width:340px; line-height:1.8 }
+.rules b{ color:var(--ink) }
+.btn{ min-width:240px; padding:15px 20px; border-radius:14px; font-weight:700;
+      background:var(--brand); color:#08221C }
+.btn.g{ background:var(--soft); color:var(--ink); border:1px solid var(--line) }
+.big{ font-size:72px; font-weight:800; line-height:1; font-variant-numeric:tabular-nums }
+</style>
+</head>
+<body>
+
+<div id="app" data-screen="TITLE">
+
+  <header>
+    <div id="track"><div id="fill"></div></div>
+    <div id="hudRow">
+      <span class="k">STAGE</span><b id="stage">1</b>
+      <span class="k">SCORE</span><b id="points">0</b>
+      <span class="sp"><button class="icon" id="bPause" type="button" title="일시정지 (P)" aria-label="일시정지">❙❙</button></span>
+    </div>
+  </header>
+
+  <main id="area"><div id="board" role="group" aria-label="도형 격자"></div></main>
+
+  <footer id="info">
+    <div><b>규칙</b> 여러 개 중 딱 하나만 다릅니다. 제한 시간 안에 찾으세요. 오답은 시간 1초 차감.</div>
+    <div><b>조작</b> 클릭·터치 · P 또는 Esc로 일시정지</div>
+    <div id="status">상태: 대기 중 · 단계 1 · 난이도 T=4.4</div>
+  </footer>
+
+  <section class="ov" id="ovTitle">
+    <h1>딱 하나 이상함</h1>
+    <div class="rules">
+      <b>여러 개 중 딱 하나만 다릅니다.</b><br>
+      제한 시간 안에 다른 하나를 찾아 누르세요.<br>
+      맞히면 다음 단계, 시간이 0이 되면 종료됩니다.<br>
+      오답을 누르면 남은 시간이 1초 줄어듭니다.
+    </div>
+    <button class="btn" id="bStart" type="button">▶ 시작하기</button>
+    <div class="sub">시드 <b id="seed"></b></div>
+  </section>
+
+  <section class="ov" id="ovPause">
+    <h1>일시정지</h1>
+    <div class="sub">타이머가 멈췄습니다.</div>
+    <button class="btn" id="bResume" type="button">계속하기</button>
+    <button class="btn g" id="bHome" type="button">처음으로</button>
+  </section>
+
+  <section class="ov" id="ovResult">
+    <div class="sub" id="rTitle">실패 — 시간 초과</div>
+    <div class="big" id="finalStage">0</div>
+    <div class="sub">단계</div>
+    <div class="sub"><span id="finalPoints">0</span>점</div>
+    <button class="btn" id="bAgain" type="button">🔁 다시 하기</button>
+    <button class="btn g" id="bHome2" type="button">처음으로</button>
+  </section>
+
+</div>
+
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>

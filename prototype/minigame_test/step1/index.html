@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>딱 하나 이상함</title>
+<style>
+  *{ box-sizing:border-box; margin:0; padding:0 }
+  html,body{ overflow-x:hidden; height:100% }
+  body{
+    min-height:100dvh; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:18px; padding:16px;
+    background:#111418; color:#8A94A6;
+    font:15px/1.55 -apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+    -webkit-tap-highlight-color:transparent; user-select:none; -webkit-user-select:none;
+  }
+  #hud{ font-variant-numeric:tabular-nums }
+  #hud b{ color:#E8EDF4; font-size:22px }
+
+  #board{
+    display:grid;
+    grid-template-columns:repeat(var(--cols,2), 1fr);
+    grid-template-rows:repeat(var(--rows,3), 1fr);
+    gap:8px;
+  }
+  .cell{
+    all:unset; width:100%; height:100%;
+    background:#8A94A6; border-radius:16%;
+    cursor:pointer; touch-action:manipulation;
+  }
+  .cell[hidden]{ display:none }
+  .cell.wrong{ background:#FF6B6B }
+
+  #note{ font-size:12.5px; color:#5A6272; text-align:center; max-width:min(92vw,520px) }
+</style>
+</head>
+<body>
+
+<div id="hud">STAGE <b id="stage">1</b> · <span id="msg">다른 하나를 찾아 누르세요</span></div>
+<div id="board" role="group" aria-label="도형 격자"></div>
+<div id="note">STEP 1 — 격자와 선택 판정만 있습니다. 타이머·점수·소리는 아직 없습니다.</div>
+
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
