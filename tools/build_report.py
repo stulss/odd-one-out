@@ -150,17 +150,65 @@ def read(p):
 
 # ── 버튼 전/후 스크린샷 섹션 ────────────────────────────────
 ACTIONS = [
-    ("01_start",    "[▶ 시작하기] 버튼",  "타이틀 화면(규칙 노출)", "게임 시작 — 격자·타이머·점수 표시"),
+    ("01_start",    "[시작하기] 버튼",     "타이틀 화면(규칙 노출)", "게임 시작 — 격자·타이머·점수 표시"),
     ("02_correct",  "정답 칸 선택",       "STAGE N 진행 중",        "STAGE 증가 + 점수 상승 + 새 격자"),
     ("03_wrong",    "오답 칸 선택",       "누르기 직전",            "해당 칸 빨강 + 남은 시간 1초 차감"),
-    ("04_pause",    "[❙❙ 일시정지] 버튼", "진행 중",                "타이머 정지 + 일시정지 화면"),
-    ("05_settings", "[⚙ 설정] 버튼",      "설정 열기 전",           "설정 시트 — 소리·움직임·난이도 T"),
+    ("04_pause",    "[일시정지] 버튼",    "진행 중",                "타이머 정지 + 일시정지 화면"),
+    ("05_settings", "[설정] 버튼",        "설정 열기 전",           "설정 시트 — 소리·움직임·난이도 T"),
     ("06_sound",    "[소리] 토글",        "소리 켜짐",              "소리 꺼짐 — 즉시 무음"),
     ("07_motion",   "[움직임 줄이기] 토글","움직임 보통",           "움직임 줄임 — 흔들림 대신 색 점멸"),
+    ("07b_tune",    "[난이도 T] 슬라이더", "T = 4.4 (기본값)",      "T = 5.4 — 설정과 하단 상태줄이 함께 변경"),
     ("08_gameover", "시간 초과 → 종료",   "진행 중 (시간 남음)",    "실패 표시 + 정답 공개 + 결과 카드"),
-    ("09_share",    "[결과 공유] 버튼",   "누르기 전",              "네이티브 공유 없음 → 복사 버튼 노출"),
-    ("10_restart",  "[다시 하기] 버튼",   "결과 화면",              "STAGE 1 · SCORE 0 초기화 (최고 기록 유지)"),
+    ("09_share",    "[결과 공유] 버튼",   "누르기 전",              "네이티브 공유 없음 → 복사 버튼 3종 노출"),
+    ("10_copytext", "[텍스트 복사] 버튼", "누르기 전",              "클립보드 복사 + '복사했습니다' 안내"),
+    ("11_copyurl",  "[링크 복사] 버튼",   "누르기 전",              "도전장 링크 복사 + 안내 문구"),
+    ("12_saveimg",  "[이미지 저장] 버튼", "누르기 전",              "결과 카드 PNG 저장 + 안내 문구"),
+    ("13_restart",  "[다시 하기] 버튼",   "결과 화면",              "STAGE 1 · SCORE 0 초기화 (최고 기록 유지)"),
+    ("14_home",     "[처음으로] 버튼",    "게임 종료 화면",         "타이틀 복귀 — 규칙 + 최고 기록 표시"),
 ]
+
+# 단계별 구현 스크린샷 (prototype/shots) — 3상태 × 4해상도 × 6단계
+STEP_STATES = [("01_title", "첫 화면"), ("02_play", "진행 중"), ("03_result", "종료")]
+STEP_RES = ["390x844", "360x640", "1366x768", "1920x1080"]
+STEP_NOTE = {
+    "step1": "격자 + 선택 판정만. 타이머·점수·타이틀 화면이 아직 없다.",
+    "step2": "시드 난수 + 제한 시간 + 점수. 여기서 처음으로 '한 판'이 끝난다.",
+    "step3": "화면 4개 + 규칙 3줄 상시 표시 + 일시정지. 타이틀 화면이 생겼다.",
+    "step4": "차이 축 10종 + 도형 4종 + 키보드 조작.",
+    "step5": "저장 + 오늘의 문제 + 결과 카드 + 공유 + 소리.",
+    "step6": "자동 일시정지 + 플레이 로거 + 난이도 곡선 수정.",
+}
+
+def step_section():
+    """단계별 스크린샷을 해상도별로 나눠 전부 싣는다."""
+    flow = [Paragraph("단계별 구현 화면 (STEP 1~6)", ST['h2']),
+            Paragraph("한 단계씩 실제로 만들고 검증한 기록입니다. 각 단계 폴더는 그 시점의 완전한 "
+                      "실행본이며, 아래 사진은 단계마다 첫 화면·진행 중·종료 화면을 "
+                      "네 해상도에서 촬영한 것입니다. 단계에 따라 없는 상태가 있는데 "
+                      "(step1에는 타이틀도 종료도 없음) 이는 결함이 아니라 "
+                      "그 기능이 아직 없었다는 증거입니다.", ST['p'])]
+    for res in STEP_RES:
+        portrait = int(res.split('x')[0]) < int(res.split('x')[1])
+        w = 46*mm if portrait else 52*mm
+        rw, rh = (int(x) for x in res.split('x'))
+        h = w * rh / rw
+        flow.append(Paragraph(f"해상도 {res}", ST['h3']))
+        for step in sorted(STEP_NOTE):
+            cells, caps = [], []
+            for key, label in STEP_STATES:
+                p = f"prototype/shots/{step}/{res}/{key}.png"
+                if os.path.exists(p):
+                    cells.append(Image(p, w, h)); caps.append(Paragraph(label, ST['cap']))
+                else:
+                    cells.append(Paragraph("(해당 상태 없음)", ST['cap'])); caps.append(Paragraph(label, ST['cap']))
+            t = Table([cells, caps], colWidths=[w + 6*mm]*3)
+            t.setStyle(TableStyle([('VALIGN', (0,0), (-1,-1), 'TOP'),
+                                   ('ALIGN', (0,0), (-1,-1), 'CENTER')]))
+            flow.append(KeepTogether([
+                Paragraph(f"{step.upper()} — {STEP_NOTE[step]}", ST['cap']),
+                t, Spacer(1, 6)]))
+        flow.append(PageBreak())
+    return flow
 
 def action_section():
     flow = [Paragraph("버튼 동작 전 / 후", ST['h2']),
@@ -203,6 +251,7 @@ for path in ['검증안내서.md']:
     story += md_to_flow(read(path)); story.append(PageBreak())
 
 story += action_section(); story.append(PageBreak())
+story += step_section()
 
 for path in ['AI_3줄.md', '트러블슈팅.md']:
     story += md_to_flow(read(path)); story.append(PageBreak())

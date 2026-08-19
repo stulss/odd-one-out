@@ -50,6 +50,7 @@ def main():
     with sync_playwright() as p:
         b = p.chromium.launch()
         ctx = b.new_context(viewport={"width": W, "height": H}, device_scale_factor=1)
+        ctx.grant_permissions(["clipboard-read", "clipboard-write"], origin=BASE.rstrip("/"))
         page = ctx.new_page()
         page.goto(BASE); page.wait_for_timeout(1200)
         print(f"[대상] {BASE}\n")
@@ -108,8 +109,22 @@ def main():
         cap(page, "07_motion_before", "움직임 보통")
         page.click("#optMotion"); page.wait_for_timeout(300)
         cap(page, "07_motion_after", "움직임 줄임 — 흔들림 대신 색 점멸")
-        # 원상 복구
-        page.click("#optSound"); page.click("#optMotion")
+        page.click("#optSound"); page.click("#optMotion")   # 원상 복구
+        page.wait_for_timeout(200)
+
+        # ── 7b. 난이도 T 변경 ───────────────────────────────
+        # 과제 카드 3: "현재 난이도 규칙과 선택한 값이 화면에 보인다"
+        print("7b. [난이도 T] 슬라이더")
+        page.evaluate("() => window.__game.setSetting('tuneT', 4.4)"); page.wait_for_timeout(200)
+        cap(page, "07b_tune_before", "난이도 T = 4.4 (기본값)")
+        page.evaluate("""() => {
+          const el = document.getElementById('tuneOut2');
+          el.value = 5.4;
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+        }""")
+        page.wait_for_timeout(350)
+        cap(page, "07b_tune_after", "난이도 T = 5.4 — 설정과 하단 상태줄이 함께 바뀜")
+        page.evaluate("() => window.__game.setSetting('tuneT', 4.4)"); page.wait_for_timeout(200)
         page.click("#btnCloseSettings"); page.wait_for_timeout(250)
 
         # ── 8. 종료 (시간 초과) ─────────────────────────────
@@ -135,14 +150,48 @@ def main():
         page.click("#btnShare"); page.wait_for_timeout(700)
         cap(page, "09_share_after", "PC는 네이티브 공유 없음 → 복사 버튼 노출")
 
-        # ── 10. 다시 하기 ───────────────────────────────────
-        print("10. [다시 하기] 버튼")
-        cap(page, "10_restart_before", "결과 화면 (도달 단계·점수)")
+        # ── 10~12. 공유 폴백 3버튼 ──────────────────────────
+        # 네이티브 공유가 없는 환경에서 실제로 무엇을 할 수 있는지 보여준다.
+        for key, sel, name, after in [
+            ("10_copytext", "#fbCopyText", "[텍스트 복사] 버튼", "클립보드 복사 + '복사했습니다' 안내"),
+            ("11_copyurl",  "#fbCopyUrl",  "[링크 복사] 버튼",   "도전장 링크 복사 + 안내"),
+            ("12_saveimg",  "#fbSaveImg",  "[이미지 저장] 버튼", "결과 카드 PNG 저장 + 안내"),
+        ]:
+            print(f"{key[:2]}. {name}")
+            page.evaluate("() => document.getElementById('toast').classList.remove('show')")
+            page.wait_for_timeout(200)
+            cap(page, key + "_before", "누르기 전")
+            page.click(sel)
+            page.wait_for_timeout(320)      # 안내 문구가 떠 있는 동안
+            cap(page, key + "_after", after)
+
+        # ── 13. 다시 하기 ───────────────────────────────────
+        print("13. [다시 하기] 버튼")
+        cap(page, "13_restart_before", "결과 화면 (도달 단계·점수)")
         page.click("#btnRestart"); page.wait_for_timeout(500)
         page.evaluate("""() => { if (document.getElementById('app').dataset.screen === 'PAUSED')
                                    window.__game.togglePause(); }""")
         page.wait_for_timeout(200)
-        cap(page, "10_restart_after", "STAGE 1 · SCORE 0 초기화 (최고 기록은 유지)")
+        cap(page, "13_restart_after", "STAGE 1 · SCORE 0 초기화 (최고 기록은 유지)")
+
+        # ── 14. 처음으로 ────────────────────────────────────
+        # 종료 화면에서 [처음으로]를 누르면 타이틀로 돌아간다.
+        print("14. [처음으로] 버튼")
+        start(page); play(page, 2)
+        page.evaluate("""() => {
+          const g = window.__game, s = g.run.stage;
+          const cells = [...document.querySelectorAll('.cell')].filter(c => !c.hidden);
+          for (let i = 0; i < 14; i++)
+            cells[(s.answer + 1) % s.total].dispatchEvent(new PointerEvent('pointerdown', {bubbles:true}));
+        }""")
+        for _ in range(30):
+            page.wait_for_timeout(300)
+            if page.evaluate("() => document.getElementById('app').dataset.screen") == 'RESULT':
+                break
+        page.wait_for_timeout(500)
+        cap(page, "14_home_before", "게임 종료 화면")
+        page.click("#btnResultTitle"); page.wait_for_timeout(500)
+        cap(page, "14_home_after", "타이틀 복귀 — 규칙 노출 + 최고 기록 표시")
 
         b.close()
 
