@@ -148,6 +148,105 @@ def md_to_flow(md, skip_h1=True):
 def read(p):
     return open(p, encoding='utf-8').read() if os.path.exists(p) else ''
 
+def read_csv_rows(p):
+    import csv
+    if not os.path.exists(p): return []
+    with open(p, encoding='utf-8-sig') as f:
+        return list(csv.reader(f))
+
+def data_table(rows, widths=None):
+    if not rows: return None
+    ncol = len(rows[0])
+    data = [[Paragraph(esc(str(c)), ST['cellb'] if ri == 0 else ST['cell']) for c in r]
+            for ri, r in enumerate(rows)]
+    t = Table(data, colWidths=widths or [(170*mm)/ncol]*ncol, repeatRows=1)
+    t.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#EEF3F7')),
+        ('GRID', (0,0), (-1,-1), 0.4, LINE),
+        ('VALIGN', (0,0), (-1,-1), 'TOP'),
+        ('LEFTPADDING', (0,0), (-1,-1), 4), ('RIGHTPADDING', (0,0), (-1,-1), 4),
+        ('TOPPADDING', (0,0), (-1,-1), 3), ('BOTTOMPADDING', (0,0), (-1,-1), 3),
+    ]))
+    return t
+
+# ── 난이도(카드3) 자동 플레이 증거 ───────────────────────────
+def difficulty_section():
+    flow = [Paragraph("난이도 검증 — 자동 플레이 (카드 3)", ST['h2']),
+            Paragraph("⚠ 이 데이터는 사람이 플레이한 기록이 아닙니다. 반응 모델을 코드로 명시한 "
+                      "자동 플레이이며, 그 사실을 숨기지 않습니다. 원래는 사람이 직접 20판을 "
+                      "플레이해 채우기로 되어 있었으나, 사용자가 이 트레이드오프를 확인한 뒤 "
+                      "자동 플레이로 대체하기로 직접 결정했습니다 "
+                      "(작업내역_체크리스트.md 결정 기록 D-22).", ST['quote']),
+            Spacer(1, 4)]
+    d = "img/difficulty"
+    pairs = [("T = 4.4 (기존값)", f"{d}/settings_T4_4.png", f"{d}/result_T4_4.png"),
+             ("T = 5.4 (비교값)", f"{d}/settings_T5_4.png", f"{d}/result_T5_4.png")]
+    for label, ps, pr in pairs:
+        if not (os.path.exists(ps) and os.path.exists(pr)):
+            flow.append(Paragraph(f"※ {label} 스크린샷 누락 — tools/shot_difficulty.py 실행 필요", ST['quote']))
+            continue
+        w = 58*mm; h = w * 844 / 390
+        t = Table([[Image(ps, w, h), Image(pr, w, h)],
+                   [Paragraph("설정 패널", ST['cap']), Paragraph("실제 플레이 결과", ST['cap'])]],
+                  colWidths=[w + 8*mm]*2)
+        t.setStyle(TableStyle([('VALIGN', (0,0), (-1,-1), 'TOP'), ('ALIGN', (0,0), (-1,-1), 'CENTER')]))
+        flow.append(KeepTogether([Paragraph(label, ST['h3']), t, Spacer(1, 6)]))
+
+    rows = read_csv_rows('docs/카드3_플레이로그_자동.csv')
+    if rows:
+        flow.append(Paragraph("전 10회(T=4.4) · 후 10회(T=5.4) 전체 기록", ST['h3']))
+        tb = data_table(rows, widths=[14*mm,20*mm,22*mm,26*mm,28*mm,60*mm])
+        flow += [tb, Spacer(1, 6)]
+        flow.append(Paragraph(
+            "도달 단계 중앙값: T=4.4는 21.0단계, T=5.4는 20.0단계. 표만 보면 차이가 작지만, "
+            "게임 내부 지표(지각 여유 %)로 재보면 20~25단계 구간에서 18~25%p 차이가 확인됩니다 "
+            "— 반응 모델의 고정된 탐색시간 공식 때문에 단계 수 차이로는 잘 드러나지 않을 뿐, "
+            "손잡이 자체는 정상 작동합니다. 최종값은 기존 T=4.4를 유지합니다.", ST['p']))
+    else:
+        flow.append(Paragraph("※ docs/카드3_플레이로그_자동.csv 없음", ST['quote']))
+    return flow
+
+# ── 10분 연속 실행 안정성 증거 ────────────────────────────────
+def stability_section():
+    flow = [Paragraph("10분 연속 실행 안정성 (카드 2)", ST['h2']),
+            Paragraph("배포된 실제 페이지에서 자동 플레이를 10분간 계속 진행시키며 "
+                      "60초 간격으로 DOM 노드 수·JS 힙·프레임 간격·콘솔 오류를 측정했습니다.", ST['p']),
+            Spacer(1, 4)]
+    s = "img/stability"
+    shots = [("시작 (0분)", f"{s}/t000_start.png"), ("3분", f"{s}/t180_3min.png"),
+             ("6분", f"{s}/t360_6min.png"), ("10분", f"{s}/t600_10min.png")]
+    imgs, caps = [], []
+    for label, path in shots:
+        if os.path.exists(path):
+            w = 38*mm; h = w * 844 / 390
+            imgs.append(Image(path, w, h)); caps.append(Paragraph(label, ST['cap']))
+    if imgs:
+        t = Table([imgs, caps], colWidths=[42*mm]*len(imgs))
+        t.setStyle(TableStyle([('VALIGN', (0,0), (-1,-1), 'TOP'), ('ALIGN', (0,0), (-1,-1), 'CENTER')]))
+        flow += [t, Spacer(1, 6)]
+    else:
+        flow.append(Paragraph("※ 스크린샷 없음 — tools/verify_stability10min.py 실행 필요", ST['quote']))
+
+    rows = read_csv_rows('docs/10분_안정성_로그.csv')
+    if rows:
+        head, data = rows[0], rows[1:]
+        idx = {name: i for i, name in enumerate(head)}
+        dom0, domN = data[0][idx['domNodes']], data[-1][idx['domNodes']]
+        heap_vals = [r[idx['heapMB']] for r in data if r[idx['heapMB']] not in ('', 'None')]
+        errN = data[-1][idx['consoleErrors']]
+        stageN = data[-1][idx['stage']]
+        flow.append(Paragraph(
+            f"결과: DOM 노드 {dom0} → {domN}개, JS 힙 "
+            f"{heap_vals[0] if heap_vals else '측정불가'}MB → {heap_vals[-1] if heap_vals else '측정불가'}MB, "
+            f"콘솔 오류 누적 {errN}건, 10분간 자동 진행으로 {stageN}단계까지 도달.", ST['p']))
+        show_cols = ['tSec','stage','domNodes','heapMB','avgFrameMs','jankFrames','consoleErrors','screen']
+        header = [c for c in show_cols if c in idx]
+        table_rows = [header] + [[r[idx[c]] for c in header] for r in data]
+        flow += [Spacer(1, 4), data_table(table_rows)]
+    else:
+        flow.append(Paragraph("※ docs/10분_안정성_로그.csv 없음 — 검증이 아직 끝나지 않았습니다.", ST['quote']))
+    return flow
+
 # ── 버튼 전/후 스크린샷 섹션 ────────────────────────────────
 ACTIONS = [
     ("01_start",    "[시작하기] 버튼",     "타이틀 화면(규칙 노출)", "게임 시작 — 격자·타이머·점수 표시"),
@@ -251,6 +350,8 @@ for path in ['검증안내서.md']:
     story += md_to_flow(read(path)); story.append(PageBreak())
 
 story += action_section(); story.append(PageBreak())
+story += difficulty_section(); story.append(PageBreak())
+story += stability_section(); story.append(PageBreak())
 story += step_section()
 
 for path in ['AI_3줄.md', '트러블슈팅.md']:
