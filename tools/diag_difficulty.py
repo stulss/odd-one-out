@@ -27,7 +27,7 @@ async () => {
 """
 with sync_playwright() as p:
     b=p.chromium.launch(); pg=b.new_context().new_page()
-    pg.goto("https://stulss.github.io/odd-one-out/"); pg.wait_for_timeout(1200)
+    pg.goto("https://odd-one-out-nine.vercel.app/"); pg.wait_for_timeout(1200)
     rows=pg.evaluate(JS); b.close()
 
 print(f"{'단계':>4} {'T=3.6':>7} {'T=4.4':>7} {'T=5.4':>7} {'모델 탐색시간':>12}  {'차이여유':>7}  축")

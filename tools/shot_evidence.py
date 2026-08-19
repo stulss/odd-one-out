@@ -11,7 +11,7 @@ import os, sys, hashlib
 from playwright.sync_api import sync_playwright
 
 sys.stdout.reconfigure(encoding='utf-8')
-BASE = "https://stulss.github.io/odd-one-out/"
+BASE = "https://odd-one-out-nine.vercel.app/"
 OUT = os.path.join("img", "evidence")
 os.makedirs(OUT, exist_ok=True)
 

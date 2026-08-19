@@ -21,7 +21,7 @@ async () => {
 """
 with sync_playwright() as p:
     b=p.chromium.launch(); pg=b.new_context().new_page()
-    pg.goto("https://stulss.github.io/odd-one-out/"); pg.wait_for_timeout(1500)
+    pg.goto("https://odd-one-out-nine.vercel.app/"); pg.wait_for_timeout(1500)
     rows=pg.evaluate(JS); b.close()
 print("차이 여유(%) — 낮을수록 어렵다. 0%면 지각 임계값(더 못 좁힘)")
 print(f"{'단계':>4} {'T=3.6':>7} {'T=4.4':>7} {'T=5.4':>7}   {'3.6→5.4 차':>10}")

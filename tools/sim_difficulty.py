@@ -26,7 +26,7 @@ from playwright.sync_api import sync_playwright
 sys.stdout.reconfigure(encoding='utf-8')
 os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-BASE = "https://stulss.github.io/odd-one-out/"
+BASE = "https://odd-one-out-nine.vercel.app/"
 RUNS = 10                                   # T당 판 수
 TS = [float(x) for x in sys.argv[1:]] or [4.4, 5.4]
 

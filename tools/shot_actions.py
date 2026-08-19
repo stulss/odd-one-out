@@ -11,7 +11,7 @@ from playwright.sync_api import sync_playwright
 
 sys.stdout.reconfigure(encoding='utf-8')
 
-LIVE = "https://stulss.github.io/odd-one-out/"
+LIVE = "https://odd-one-out-nine.vercel.app/"
 LOCAL = "http://localhost:8124/"
 BASE = LOCAL if (len(sys.argv) > 1 and sys.argv[1] == 'local') else LIVE
 OUT = os.path.join("img", "actions")

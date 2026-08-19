@@ -28,7 +28,7 @@ BRAND   = RGBColor(0x5E, 0xE6, 0xC5)
 WARN    = RGBColor(0xFF, 0xB4, 0x54)
 BAD     = RGBColor(0xFF, 0x6B, 0x6B)
 
-URL = "https://stulss.github.io/odd-one-out/"
+URL = "https://odd-one-out-nine.vercel.app/"
 REPO = "https://github.com/stulss/odd-one-out"
 
 FONT = "맑은 고딕"

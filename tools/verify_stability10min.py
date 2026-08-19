@@ -10,7 +10,7 @@ import os, sys, csv, hashlib
 from playwright.sync_api import sync_playwright
 
 sys.stdout.reconfigure(encoding='utf-8')
-BASE = "https://stulss.github.io/odd-one-out/"
+BASE = "https://odd-one-out-nine.vercel.app/"
 OUT_DIR = os.path.join("img", "stability")
 CSV_PATH = os.path.join("docs", "10분_안정성_로그.csv")
 os.makedirs(OUT_DIR, exist_ok=True)

@@ -20,7 +20,7 @@ os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 TITLE = "내가 설계한 미니게임 — 과제 제출 보고서"
 GAME = "딱 하나 이상함"
-URL = "https://stulss.github.io/odd-one-out/"
+URL = "https://odd-one-out-nine.vercel.app/"
 REPO = "https://github.com/stulss/odd-one-out"
 OUT = "과제제출보고서.pdf"
 
