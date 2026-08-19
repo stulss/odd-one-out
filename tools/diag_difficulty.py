@@ -1,7 +1,7 @@
-import os, sys
+import sys
 from playwright.sync_api import sync_playwright
 sys.stdout.reconfigure(encoding='utf-8')
-os.chdir(r"C:\Users\stuls\Desktop\developer stuls\odd-one-out")
+# 이 스크립트는 배포된 공개 주소에서 직접 값을 읽으므로 로컬 파일 경로가 필요 없다.
 
 JS = """
 async () => {
