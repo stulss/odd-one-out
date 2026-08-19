@@ -17,7 +17,11 @@ def main():
     if not os.path.exists(SRC):
         sys.exit(f"입력 파일 없음: {SRC}")
     if os.path.exists(DST):
-        os.remove(DST)  # SaveAs가 기존 파일이 있으면 조용히 실패하는 경우가 있어 미리 지운다
+        try:
+            os.remove(DST)  # SaveAs가 기존 파일이 있으면 조용히 실패하는 경우가 있어 미리 지운다
+        except PermissionError:
+            # 미리보기 뷰어 등이 파일을 열어 잠그고 있는 경우 — SaveAs가 덮어쓰기를 시도하게 둔다.
+            print("경고: 기존 PDF가 다른 프로그램에서 열려 있어 지우지 못했습니다. 덮어쓰기를 시도합니다.")
 
     # 이전 실행이 비정상 종료되면 POWERPNT.EXE가 남아 .pptx를 잠근 채로 떠 있을 수 있다.
     os.system("taskkill /IM POWERPNT.EXE /F >nul 2>&1")

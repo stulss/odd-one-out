@@ -96,7 +96,7 @@ odd-one-out/
 | [docs/05_배포.md](docs/05_배포.md) | 배포처 비교와 GitHub Pages 선택 근거·절차 |
 | [prototype/STEPS.md](prototype/STEPS.md) | 단계별 실제 구현·검증 기록 (STEP 1~6 전부 완료) |
 | 과제제출보고서.pdf | 문서형 제출 보고서 48쪽 · 이미지 97장 (검증안내서+증거+트러블슈팅+AI3줄 묶음) |
-| 발표자료.pdf / 발표자료.pptx | 발표용 슬라이드 18장 (16:9). `tools/build_slides.py`로 pptx 생성 → `tools/pptx_to_pdf.py`로 PowerPoint COM 변환 |
+| 발표자료.pdf / 발표자료.pptx | 발표용 슬라이드 19장 (16:9), 학생 자체 점검 11항목 증빙자료 슬라이드 포함. `tools/build_slides.py`로 pptx 생성 → `tools/pptx_to_pdf.py`로 PowerPoint COM 변환 |
 
 ## 현재 상태
 

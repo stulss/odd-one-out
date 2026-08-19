@@ -131,8 +131,9 @@ def phone_row(s, items, top, h=Inches(4.1), gap=Inches(0.35), start_l=None, max_
         l += wpx + gap
     return use_h
 
-def table_slide(s, headers, rows, l, t, w, h, col_w=None, header_fill=LINE, font_size=12):
-    from pptx.util import Cm
+def table_slide(s, headers, rows, l, t, w, h, col_w=None, header_fill=LINE, font_size=12, left_cols=()):
+    """left_cols: 왼쪽 정렬할 열 인덱스 집합. 문장형 텍스트(항목·증빙자료 등)는
+    가운데 정렬하면 줄마다 들쭉날쭉해 보여서 왼쪽 정렬이 낫다."""
     rc, cc = len(rows) + 1, len(headers)
     gt = s.shapes.add_table(rc, cc, l, t, w, h).table
     if col_w:
@@ -140,15 +141,18 @@ def table_slide(s, headers, rows, l, t, w, h, col_w=None, header_fill=LINE, font
     for c, htext in enumerate(headers):
         cell = gt.cell(0, c); cell.text = str(htext)
         cell.fill.solid(); cell.fill.fore_color.rgb = header_fill
+        align = PP_ALIGN.LEFT if c in left_cols else PP_ALIGN.CENTER
         for p in cell.text_frame.paragraphs:
-            p.alignment = PP_ALIGN.CENTER
+            p.alignment = align
             for r in p.runs: r.font.bold = True; r.font.size = Pt(font_size); r.font.color.rgb = INK; r.font.name = FONT
     for ri, row in enumerate(rows, start=1):
         for c, val in enumerate(row):
             cell = gt.cell(ri, c); cell.text = str(val)
             cell.fill.solid(); cell.fill.fore_color.rgb = BG_SOFT
+            cell.margin_left = Pt(8) if c in left_cols else cell.margin_left
+            align = PP_ALIGN.LEFT if c in left_cols else PP_ALIGN.CENTER
             for p in cell.text_frame.paragraphs:
-                p.alignment = PP_ALIGN.CENTER
+                p.alignment = align
                 for r in p.runs: r.font.size = Pt(font_size); r.font.color.rgb = INK_DIM; r.font.name = FONT
     return gt
 
@@ -350,7 +354,7 @@ phone_row(s, [
     ("img/stability/t180_3min.png", "3분"),
     ("img/stability/t360_6min.png", "6분"),
     ("img/stability/t600_10min.png", "10분"),
-], top=Inches(1.85), h=Inches(3.5), start_l=Inches(0.9))
+], top=Inches(1.85), h=Inches(3.5))  # start_l 생략 → 슬라이드 폭 기준 가운데 정렬
 metrics = [("DOM 노드", "112 → 112", "증가 0"), ("JS 힙", "9.54MB → 9.54MB", "증가 0"),
            ("프레임 드랍", "0 / 6002", "0.00%"), ("콘솔 오류", "0건", "10분 내내")]
 mx = Inches(0.9)
@@ -479,6 +483,30 @@ rows = [
 table_slide(s, ["항목", "결과", "상태"], rows,
             Inches(2.4), Inches(1.9), Inches(8.5), Inches(4.2),
             col_w=[Inches(4.5), Inches(2.7), Inches(1.3)], font_size=16)
+
+# ═══════════════════════════════════════════════════════════
+# 17b. 필수 체크리스트 — 11항목 + 증빙자료
+# ═══════════════════════════════════════════════════════════
+s = track(new_slide())
+title_bar(s, "필수 체크리스트", "학생 자체 점검 11항목 — 증빙자료")
+checklist = [
+    ["1", "공개 주소에서 시작→종료→재시작 가능", "배포 URL 직접 실행"],
+    ["2", "핵심 조작과 성공·실패 상태가 화면에서 구분", "슬라이드 3 (카드1 스크린샷)"],
+    ["3", "두 기준 해상도에서 잘림·가로 넘침 없음", "슬라이드 9 검사표 (1366×768·1920×1080 실측)"],
+    ["4", "연속 입력·포커스·일시정지·10분 실행 검사 통과", "슬라이드 9~10, 10분_안정성_로그.csv"],
+    ["5", "콘솔 빨간 오류 0건", "전 슬라이드 공통 확인"],
+    ["6", "전·후 각 10회 기록, 난이도 값 1개만 변경", "슬라이드 11, 카드3_플레이로그_자동.csv"],
+    ["7", "저장값이 비거나 손상돼도 기본값으로 실행", "슬라이드 12 (손상값 6종)"],
+    ["8", "현재 판 초기화 + 보존 대상 기록 유지", "슬라이드 12"],
+    ["9", "효과를 줄이거나 끄는 선택이 작동", "슬라이드 13 (카드5 스크린샷)"],
+    ["10", "공개 화면·파일·제출 기록에 개인정보·비밀값 0건", "저장소 전수 grep 검사"],
+    ["11", "위 항목 1~10 모두 완료", "본 슬라이드 요약"],
+]
+rows_status = [[n, item, "완료", ev] for n, item, ev in checklist]
+table_slide(s, ["#", "체크리스트 항목", "상태", "증빙자료"], rows_status,
+            Inches(0.7), Inches(1.75), Inches(11.9), Inches(5.35),
+            col_w=[Inches(0.55), Inches(5.05), Inches(1.1), Inches(5.2)], font_size=12,
+            left_cols={1, 3})
 
 # ═══════════════════════════════════════════════════════════
 # 18. 마무리
