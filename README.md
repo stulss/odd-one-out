@@ -42,19 +42,6 @@
 각 축에는 **지각 임계값**이 정의되어 있어, 후반에도 "아무도 못 찾는 판"이 나오지 않습니다.
 도형은 사각·원·마름모·육각 4종이며 전부 CSS `clip-path`로 그립니다.
 
-## 실행 방법
-
-ES 모듈을 쓰므로 `index.html`을 더블클릭하면 동작하지 않습니다. 서버로 여세요.
-
-```bash
-python -u ".claude/serve.py" 8124 odd-one-out
-```
-
-브라우저에서 `http://localhost:8124/` 접속.
-
-> Windows의 `python -m http.server`는 `.js`를 `text/plain`으로 내보내 모듈 로딩이 실패합니다.
-> 그래서 MIME 타입을 바로잡은 `.claude/serve.py`를 씁니다. 배포처(GitHub Pages)에서는 문제없습니다.
-
 ## 폴더 구조
 
 ```
