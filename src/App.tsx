@@ -27,6 +27,7 @@ export function App() {
   const stageAreaRef = useRef<HTMLElement>(null);
   const boardRef = useRef<HTMLDivElement>(null);
   const worldRef = useRef<HTMLDivElement>(null);
+  const confettiRef = useRef<HTMLDivElement>(null);
 
   // 엔진 시작 · 포커스 이탈 감시 · 개발용 핸들
   useEffect(() => {
@@ -54,7 +55,7 @@ export function App() {
     const app = appRef.current, layer = layerRef.current, flash = flashRef.current;
     const area = stageAreaRef.current, board = boardRef.current;
     if (!app || !layer || !flash || !area || !board) return;
-    const fx = createFx({ app, layer, flash, shakeTarget: area, board });
+    const fx = createFx({ app, layer, flash, shakeTarget: area, board, confetti: confettiRef.current ?? undefined });
     const mark = (i: number, cls: string) => {
       const el = board.children[i];
       if (!el) return;
@@ -76,6 +77,9 @@ export function App() {
               fx.banner(`COMBO x${e.combo}!`, e.combo >= 10 ? '#ff8a4c' : '#ffd75e');
             }
           }
+          break;
+        case 'confetti':
+          fx.confetti(e.big);
           break;
         case 'modifier':
           fx.banner(e.mod === 'rush' ? '⚡ 번개 판!' : '🌟 황금 판!', e.mod === 'rush' ? '#ff6b6b' : '#ffd75e');
@@ -131,6 +135,7 @@ export function App() {
       <BgScene worldRef={worldRef} hue={snap.themeHue} />
       <div id="fxLayer" ref={layerRef} aria-hidden="true" />
       <div id="flash" ref={flashRef} aria-hidden="true" />
+      <div id="confettiLayer" ref={confettiRef} aria-hidden="true" />
 
       <Hud onOpenSettings={() => setSettingsOpen(true)} />
       <Board stageAreaRef={stageAreaRef} boardRef={boardRef} />

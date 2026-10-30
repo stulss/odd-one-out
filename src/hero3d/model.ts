@@ -6,7 +6,7 @@
 //  · 큰 머리 · 작은 얼굴 · 복장 실루엣 — 2D 버전(components/Hero.tsx)과 같은 디자인 원칙
 // 직업(job) 6종 × 진화(tier) 0~5 는 2D와 같은 규칙: 복장은 직업이 정하고, 진화는 공통 레이어로 얹는다.
 import {
-  AdditiveBlending, BackSide, BoxGeometry, BufferGeometry, CapsuleGeometry, Color, ConeGeometry, CylinderGeometry,
+  AdditiveBlending, BackSide, BoxGeometry, BufferGeometry, CapsuleGeometry, CircleGeometry, Color, ConeGeometry, CylinderGeometry,
   DataTexture, DoubleSide, ExtrudeGeometry, Group, LatheGeometry, Mesh, MeshBasicMaterial, MeshToonMaterial,
   NearestFilter, OctahedronGeometry, RedFormat, SRGBColorSpace, Shape, SphereGeometry, TorusGeometry, Vector2,
   type Material,
@@ -121,6 +121,12 @@ export function buildHero(raw: HeroData, tier: number): Rig {
   const root = new Group();
   const body = new Group();
   root.add(body);
+  // 발밑의 부드러운 접지 그림자 — 캐릭터가 바닥에 서 있는 느낌
+  const blob = new Mesh(geo('blob', () => new CircleGeometry(0.62, 32)), new MeshBasicMaterial({ color: '#000', transparent: true, opacity: 0.28, depthWrite: false }));
+  blob.rotation.x = -PI / 2;
+  blob.position.y = 0.012;
+  blob.scale.set(1, 0.8, 1);
+  root.add(blob);
 
   /* ── 다리 · 신발 ── */
   const pants: Record<Job, string | Color> = {
@@ -237,10 +243,6 @@ export function buildHero(raw: HeroData, tier: number): Rig {
     g.add(part(cyl(0.05, 0.05, 0.3, 12), '#3a3f4f', { p: [0, 0.12, 0], o: 1.12 }));
     g.add(part(cyl(0.09, 0.06, 0.12, 14), SILVER, { p: [0, 0.3, 0], o: 1.12 }));
     g.add(flat(sphere(0.045), '#fff6bf', { p: [0, 0.37, 0] }));
-    const beam = new Mesh(geo('torch-beam', () => new ConeGeometry(0.28, 0.9, 20, 1, true)), new MeshBasicMaterial({ color: '#fff3b0', transparent: true, opacity: 0.22, depthWrite: false, side: DoubleSide }));
-    beam.position.set(0, 0.85, 0); // 원뿔 끝(뾰족한 쪽)이 손전등을 향하도록 뒤집는다
-    beam.rotation.z = PI;
-    g.add(beam);
     armR.add(g);
   } else if (hero.acc === 'notebook') { // 수사 수첩
     const g = new Group(); g.position.set(0, -0.5, 0.06); g.rotation.set(0.3, 0.3, -0.15);

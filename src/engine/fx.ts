@@ -25,6 +25,7 @@ export interface FxTargets {
   flash: HTMLElement;
   shakeTarget: HTMLElement;
   board: HTMLElement;
+  confetti?: HTMLElement; // 오버레이 위에 떠 있는 색종이 층
 }
 
 export const motionEnabled = () =>
@@ -132,7 +133,29 @@ export function createFx(t: FxTargets) {
     ], { duration: 1100, easing: 'cubic-bezier(.2,.9,.3,1)' }).onfinish = () => el.remove();
   }
 
-  return { burst, shake, pulse, boardIn, popText, banner };
+  /** 색종이: 위에서 흩날리며 떨어진다 (사건 해결 · 보스 격파). big이면 더 많이. */
+  function confetti(big = false) {
+    const layer = t.confetti;
+    if (!motionEnabled() || !layer) return;
+    const n = big ? 70 : 42;
+    const colors = ['#5EE6C5', '#ffd75e', '#ff6b8a', '#7aa2ff', '#ffa94d', '#c77dff'];
+    const w = layer.clientWidth || 360, h = layer.clientHeight || 700;
+    for (let i = 0; i < n; i++) {
+      const p = document.createElement('i');
+      p.className = 'confetti';
+      const sz = 6 + rnd() * 7;
+      p.style.cssText = `left:${rnd() * w}px;top:-14px;width:${sz}px;height:${sz * (0.5 + rnd() * 0.9)}px;background:${colors[Math.floor(rnd() * colors.length)]}`;
+      layer.appendChild(p);
+      const drift = (rnd() - 0.5) * 160;
+      p.animate([
+        { transform: 'translate(0,0) rotate(0deg)', opacity: 1 },
+        { transform: `translate(${drift}px,${h * (0.55 + rnd() * 0.5)}px) rotate(${(rnd() - 0.5) * 900}deg)`, opacity: 0.9, offset: 0.85 },
+        { transform: `translate(${drift * 1.1}px,${h + 30}px) rotate(${(rnd() - 0.5) * 1000}deg)`, opacity: 0 },
+      ], { duration: 1700 + rnd() * 1300, delay: rnd() * 350, easing: 'cubic-bezier(.3,.6,.5,1)', fill: 'forwards' }).onfinish = () => p.remove();
+    }
+  }
+
+  return { burst, shake, pulse, boardIn, popText, banner, confetti };
 }
 
 export type Fx = ReturnType<typeof createFx>;

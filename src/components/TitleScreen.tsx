@@ -8,6 +8,8 @@ import { RANKS } from '../engine/story';
 import { heroTier } from '../engine/campaign';
 import { attachTilt } from '../engine/fx';
 import { Hero } from './Hero';
+import { Logo } from './Logo';
+import { Book, Coin } from './Icons';
 
 export function TitleScreen({ onOpenSettings }: { onOpenSettings: () => void }) {
   const engine = useEngine();
@@ -37,7 +39,7 @@ export function TitleScreen({ onOpenSettings }: { onOpenSettings: () => void }) 
         </div>
       </div>
       <div id="heroLine">{store.hero.name || '감별사'}<small>{RANKS[heroTier(store)].name}</small></div>
-      <h1>딱 하나 이상함</h1>
+      <div className="brand"><Logo /><h1>딱 하나 이상함</h1></div>
       <div className="sub" id="challengeLabel">{challengeLabel(challenge)}</div>
       {challenge.rival && <div id="rivalBanner">친구의 기록 {challenge.rival}단계 — 넘어보세요</div>}
 
@@ -72,7 +74,7 @@ export function TitleScreen({ onOpenSettings }: { onOpenSettings: () => void }) 
       </div>
       <div className="row2 links">
         <button className="linkbtn" id="btnHeroEdit" type="button" onClick={() => engine.openCreator()}>캐릭터 바꾸기</button>
-        <button className="linkbtn" id="btnTitleCodex" type="button" onClick={() => engine.openCodex()}>📖 도감 · 상점 (🪙 {store.coins})</button>
+        <button className="linkbtn" id="btnTitleCodex" type="button" onClick={() => engine.openCodex()}><Book /> 도감 · 상점 (<Coin /> {store.coins})</button>
       </div>
       <div className="sub" id="bestLine">{bestLine}</div>
       <div className="hint">여러 개 중 딱 하나만 다릅니다 · 오답은 시간 −1초</div>

@@ -119,6 +119,7 @@ export interface Snapshot {
 export type FxEvent =
   | { type: 'correct'; index: number; power: number; hue: number; milestone: boolean; gain: number; fast: boolean; combo: number; coins: number }
   | { type: 'modifier'; mod: ModId }
+  | { type: 'confetti'; big: boolean }
   | { type: 'wrong'; index: number }
   | { type: 'over' }
   | { type: 'stage' }
@@ -682,13 +683,19 @@ export function createEngine() {
         });
       }
       Audio.sfx.fanfare();
-      play(lines, { k: 'CLEAR', n: boss.name }, 750, () => { show('CASE_RESULT'); emit(); }, { hue, tier, boss, defeated: true });
+      play(lines, { k: 'CLEAR', n: boss.name }, 750, () => { show('CASE_RESULT'); celebrate(); emit(); }, { hue, tier, boss, defeated: true });
       show('STORY');
       emit();
       return;
     }
     show('CASE_RESULT');
+    celebrate();
     emit();
+  }
+
+  /** 사건을 해결했으면 결과 화면에서 색종이를 터뜨린다 */
+  function celebrate() {
+    if (caseResult?.success) fx({ type: 'confetti', big: caseResult.stars === 3 });
   }
 
   const jobLabel = (j: string) =>

@@ -1,7 +1,7 @@
 /* 테마 — 인라인 크리티컬 CSS 위에 얹는 시각 레이어.
-   주의: .cell 에는 box-shadow · filter 를 걸지 않는다.
-   차이 축(밝기·채도·색조·선명도…)이 같은 속성을 인라인으로 덮어쓰기 때문에,
-   여기서 칠하면 '정답 칸만 장식이 사라지는' 단서가 생긴다. */
+   주의: .cell 에는 filter 를 걸지 않는다.
+   차이 축(밝기·채도·색조·선명도)이 filter를 인라인으로 덮어쓰기 때문에,
+   여기서 걸면 '정답 칸만 장식이 사라지는' 단서가 생긴다. (box-shadow는 쓰는 축이 없어 안전하다) */
 
 @property --zh { syntax:'<number>'; inherits:true; initial-value:160 }
 :root{ --zh:160; transition:--zh .9s ease; --accent:hsl(var(--zh) 70% 62%) }
@@ -412,3 +412,62 @@ h1{
 .itemRow{ display:flex; align-items:center; gap:6px; min-width:0; min-height:36px }
 .itemRow .modChip{ flex:1; min-width:0 }
 .itemSpacer{ flex:1 }
+
+/* ── 그래픽 고도화 ─────────────────────────────────── */
+/* 아이콘 */
+.ic{ width:1.15em; height:1.15em; vertical-align:-.2em; flex:none; display:inline-block }
+.wallet span{ display:inline-flex; align-items:center; gap:4px }
+.icon .ic{ width:20px; height:20px; vertical-align:middle }
+.btn .ic,.mClaim .ic,.linkbtn .ic,.missionsHead .ic{ width:1.2em; height:1.2em }
+.mClaim{ display:inline-flex; align-items:center; gap:3px }
+.missionsHead{ display:flex; align-items:center; gap:5px }
+.stars + .ic,.sub .ic{ width:1.1em; height:1.1em }
+
+/* 로고 */
+.brand{ display:flex; align-items:center; gap:10px; justify-content:center }
+.logo{ width:46px; height:46px; flex:none; filter:drop-shadow(0 4px 8px rgb(0 0 0 / .5)); animation:logoFloat 3.2s ease-in-out infinite }
+.logo .logo-odd{ transform-box:fill-box; transform-origin:center; animation:oddWiggle 2.6s ease-in-out infinite }
+.logo .logo-lens{ transform-box:fill-box; transform-origin:30% 30%; animation:lensScan 3.6s ease-in-out infinite }
+@keyframes logoFloat{ 50%{ transform:translateY(-3px) } }
+@keyframes oddWiggle{ 50%{ transform:rotate(7deg) } }
+@keyframes lensScan{ 0%,100%{ transform:translate(0,0) } 50%{ transform:translate(-4px,-3px) } }
+
+/* 시간 게이지: 유리관 + 빛나는 액체 + 눈금 */
+#gaugeTrack{ height:10px; border-radius:99px; position:relative; background:linear-gradient(180deg,#0c1016,#161b22); box-shadow:inset 0 1px 3px rgb(0 0 0 / .7), 0 1px 0 rgb(255 255 255 / .06) }
+#gaugeTrack::after{ content:''; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+  background:repeating-linear-gradient(90deg, transparent 0 calc(10% - 1px), rgb(0 0 0 / .35) calc(10% - 1px) 10%) }
+#gauge{ background:linear-gradient(180deg,#9bf6df,#2fc9a4); box-shadow:0 0 12px rgb(94 230 197 / .7); border-radius:99px }
+#gauge::after{ content:''; position:absolute; left:0; right:0; top:1px; height:3px; border-radius:99px; background:rgb(255 255 255 / .38) }
+#gauge{ position:relative }
+#gauge.warn{ background:linear-gradient(180deg,#ffd9a0,#ff9a3c); box-shadow:0 0 12px rgb(255 154 60 / .8); animation:gaugeWarn .5s ease-in-out infinite alternate }
+@keyframes gaugeWarn{ to{ filter:brightness(1.35) } }
+
+/* 위험 비네트: 시간이 25% 아래로 떨어지면 화면 가장자리가 붉게 맥박친다 */
+#app::after{ content:''; position:absolute; inset:0; pointer-events:none; z-index:3; opacity:0; transition:opacity .25s;
+  box-shadow:inset 0 0 70px 6px rgb(255 50 70 / .55) }
+#app[data-warn="1"]::after{ opacity:1; animation:warnPulse .8s ease-in-out infinite alternate }
+@keyframes warnPulse{ from{ box-shadow:inset 0 0 50px 2px rgb(255 50 70 / .35) } to{ box-shadow:inset 0 0 90px 12px rgb(255 50 70 / .65) } }
+
+/* 게임판 뒤: 구역 색의 은은한 무대 조명과 바닥 격자 */
+#stageArea{ position:relative }
+#stageArea::before{ content:''; position:absolute; inset:-4% -2%; z-index:-1; pointer-events:none; border-radius:28px;
+  background:
+    radial-gradient(ellipse at 50% 42%, hsl(var(--zh) 55% 24% / .45), transparent 68%),
+    repeating-linear-gradient(0deg, rgb(255 255 255 / .022) 0 1px, transparent 1px 28px),
+    repeating-linear-gradient(90deg, rgb(255 255 255 / .022) 0 1px, transparent 1px 28px) }
+
+/* 사건 지도: 구역 워터마크 + 사건을 잇는 길 */
+.zoneBlock{ position:relative; overflow:clip }  /* hidden은 격자 안에서 높이가 줄어들어 버리므로 clip */
+.zoneMark{ position:absolute; right:-6px; top:-4px; width:92px; height:92px; opacity:.2; transform:rotate(-10deg); pointer-events:none }
+.zoneMark .obj{ filter:saturate(.8) }
+.caseRow{ position:relative }
+/* 사건 사이를 잇는 점선 — 칸 사이 틈에만 그린다 (칸 글씨를 가로지르지 않게) */
+.caseNode:not(:last-child)::after{ content:''; position:absolute; right:-10px; top:26px; width:12px; border-top:3px dotted hsl(var(--zh) 60% 55% / .75) }
+.caseNode{ position:relative; z-index:1 }
+
+/* 색종이 (오버레이 위) */
+#confettiLayer{ position:absolute; inset:0; z-index:9; pointer-events:none; overflow:hidden }
+.confetti{ position:absolute; display:block; border-radius:2px; will-change:transform,opacity }
+:root[data-reduced="on"] .logo,:root[data-reduced="on"] .logo .logo-odd,:root[data-reduced="on"] .logo .logo-lens,
+:root[data-reduced="on"] #gauge.warn,:root[data-reduced="on"] #app[data-warn="1"]::after{ animation:none !important }
+@media (prefers-reduced-motion:reduce){ .logo,.logo .logo-odd,.logo .logo-lens,#gauge.warn,#app[data-warn="1"]::after{ animation:none !important } }

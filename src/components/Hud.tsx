@@ -7,6 +7,7 @@ import { heroTier } from '../engine/campaign';
 import { MODS } from '../engine/modifiers';
 import { Hero } from './Hero';
 import { BossFigure } from './BossFigure';
+import { Bulb, Clock } from './Icons';
 
 export function Hud({ onOpenSettings }: { onOpenSettings: () => void }) {
   const engine = useEngine();
@@ -18,6 +19,8 @@ export function Hud({ onOpenSettings }: { onOpenSettings: () => void }) {
     if (!g) return;
     g.style.transform = `scaleX(${Math.min(1, Math.max(0, left / limit))})`; // 시계로 늘어난 시간은 게이지가 가득 찬 채로 보여 준다
     g.classList.toggle('warn', left / limit < 0.3);
+    const app = g.closest('#app') as HTMLElement | null;
+    if (app) app.dataset.warn = left / limit < 0.25 && left > 0 ? '1' : ''; // 위험 비네트
   }), [engine]);
 
   // 새 판이 시작되면 게이지를 가득 채운다 (일시정지 후 재시작·연습 모드 포함)
@@ -27,6 +30,11 @@ export function Hud({ onOpenSettings }: { onOpenSettings: () => void }) {
       gaugeRef.current.classList.remove('warn');
     }
   }, [snap.n, snap.screen, snap.stageId]);
+
+  // 게임 중이 아니면 위험 표시를 끈다
+  useEffect(() => {
+    if (snap.screen !== 'PLAY') { const app = gaugeRef.current?.closest('#app') as HTMLElement | null; if (app) app.dataset.warn = ''; }
+  }, [snap.screen]);
 
   const z = zoneOf(snap.n);
   const cr = snap.caseRun;
@@ -78,10 +86,10 @@ export function Hud({ onOpenSettings }: { onOpenSettings: () => void }) {
             )
             : <span className="itemSpacer" />}
           <button className="icon hintBtn" id="btnClock" type="button" title="시계 +5초 (C)" aria-label={`시계 ${snap.store.clocks}개`}
-            onClick={() => engine.useClock()}>⏱<small>{snap.store.clocks}</small></button>
+            onClick={() => engine.useClock()}><Clock /><small>{snap.store.clocks}</small></button>
           {cr && (
             <button className="icon hintBtn" id="btnHint" type="button" title="힌트 (H)" aria-label={`힌트 ${snap.store.hints}개`}
-              disabled={snap.hintIndex !== null} onClick={() => engine.useHint()}>💡<small>{snap.store.hints}</small></button>
+              disabled={snap.hintIndex !== null} onClick={() => engine.useHint()}><Bulb /><small>{snap.store.hints}</small></button>
           )}
         </div>
       )}
