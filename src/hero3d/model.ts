@@ -123,48 +123,80 @@ export function buildHero(raw: HeroData, tier: number): Rig {
   root.add(body);
 
   /* ── 다리 · 신발 ── */
-  if (job === 'nomad') {
-    for (const sx of [-1, 1]) {
-      body.add(part(sphere(0.21), cream, { p: [sx * 0.15, 0.36, 0], s: [1, 1.15, 1] }));
-      body.add(flat(torus(0.17, 0.035), accent, { p: [sx * 0.15, 0.2, 0], r: [PI / 2, 0, 0] }));
-    }
-  } else {
-    const pants = job === 'ninja' ? dark : new Color(job === 'rogue' ? '#3b3440' : '#2f3442');
-    for (const sx of [-1, 1]) body.add(part(cap(0.1, 0.3), pants, { p: [sx * 0.15, 0.36, 0] }));
+  const pants: Record<Job, string | Color> = {
+    rookie: '#2b3140', field: '#2f3442', engineer: main, disguise: '#1d1f27', archivist: '#3a3f4f', street: '#3d4f78', chief: '#f4f1ea',
+  };
+  const boots: Record<Job, string> = {
+    rookie: '#3b2f2a', field: '#4a382f', engineer: '#5a4a36', disguise: '#15161c', archivist: '#4a382f', street: '#f4f1ea', chief: '#15161c',
+  };
+  for (const sx of [-1, 1]) {
+    body.add(part(cap(0.1, 0.3), pants[job], { p: [sx * 0.15, 0.36, 0] }));
+    body.add(part(sphere(0.15), boots[job], { p: [sx * 0.15, 0.1, 0.05], s: [1, 0.62, 1.35] }));
+    if (job === 'engineer') body.add(flat(torus(0.108, 0.022), '#ffe27a', { p: [sx * 0.15, 0.3, 0], r: [PI / 2, 0, 0] })); // 반사띠
+    if (job === 'street') body.add(flat(torus(0.17, 0.02), accent, { p: [sx * 0.15, 0.1, 0.05], r: [PI / 2, 0, 0], s: [1, 1.3, 1] })); // 형광 밑창
   }
-  for (const sx of [-1, 1]) body.add(part(sphere(0.15), '#4a382f', { p: [sx * 0.15, 0.1, 0.05], s: [1, 0.62, 1.35] }));
 
-  /* ── 몸통 (직업별 상의) ── */
-  const torsoColor = job === 'ninja' ? dark : main;
+  /* ── 몸통 (복장별 상의) ── */
+  const torsoColor: string | Color =
+    job === 'disguise' ? dark : job === 'chief' ? '#fbfaf6' : job === 'archivist' ? '#f4f1ea' : job === 'street' ? accent : main;
   body.add(part(cap(0.28, 0.34), torsoColor, { p: [0, 0.92, 0] }));
-  const longRobe = job === 'mage' || job === 'cleric';
-  if (job === 'detective') { // 트렌치코트: 무릎 아래까지
-    body.add(part(bell([[0.3, 1.25], [0.36, 0.9], [0.44, 0.5], [0.47, 0.28]]), main, { side: DoubleSide, o: 1.03 }));
-    body.add(flat(box(0.18, 0.7, 0.04), cream, { p: [0, 0.95, 0.33] })); // 셔츠 V
-    for (const sx of [-1, 1]) body.add(part(cone(0.13, 0.3, 4), dark, { p: [sx * 0.2, 1.2, 0.26], r: [0.2, 0, -sx * 0.5], o: 1.1 }));
-    body.add(part(torus(0.4, 0.04), dark, { p: [0, 0.72, 0], r: [PI / 2, 0, 0], o: 1.2 })); // 허리띠
-    body.add(part(box(0.12, 0.1, 0.05), GOLD, { p: [0, 0.72, 0.42], o: 1.2 }));
-  } else if (longRobe) { // 긴 로브
-    const robe = job === 'cleric' ? cream : main;
-    body.add(part(bell([[0.3, 1.25], [0.4, 0.9], [0.56, 0.4], [0.66, 0.04]]), robe, { side: DoubleSide, o: 1.03 }));
-    body.add(flat(torus(0.655, 0.035), job === 'cleric' ? main : accent, { p: [0, 0.07, 0], r: [PI / 2, 0, 0] })); // 밑단 장식
-    if (job === 'cleric') body.add(part(box(0.2, 1.0, 0.05), accent, { p: [0, 0.72, 0.5], r: [0.1, 0, 0], o: 1.15 })); // 영대
-    else body.add(part(torus(0.37, 0.045), accent, { p: [0, 0.78, 0], r: [PI / 2, 0, 0], o: 1.2 }));
-  } else if (job === 'ninja') { // 어깨끈 + 허리띠
-    body.add(part(box(0.1, 0.8, 0.04), accent, { p: [0, 0.95, 0.31], r: [0, 0, 0.7], o: 1.2 }));
-    body.add(part(torus(0.31, 0.06), accent, { p: [0, 0.7, 0], r: [PI / 2, 0, 0], o: 1.15 }));
-  } else if (job === 'nomad') { // 조끼 + 띠
-    for (const sx of [-1, 1]) body.add(part(box(0.2, 0.62, 0.52), main, { p: [sx * 0.2, 0.95, 0], o: 1.05 }));
-    body.add(part(torus(0.31, 0.065), accent, { p: [0, 0.72, 0], r: [PI / 2, 0, 0], o: 1.15 }));
-    body.add(part(box(0.1, 0.4, 0.04), accent, { p: [0.22, 0.5, 0.3], r: [0, 0, -0.15], o: 1.15 }));
-  } else { // rogue: 짧은 재킷 + 스카프
-    body.add(part(torus(0.31, 0.06), dark, { p: [0, 0.7, 0], r: [PI / 2, 0, 0], o: 1.15 }));
-    body.add(part(torus(0.27, 0.07), accent, { p: [0, 1.24, 0], r: [PI / 2, 0, 0], o: 1.15 }));
-    body.add(part(box(0.1, 0.34, 0.04), accent, { p: [0.12, 1.0, 0.3], r: [0.1, 0, 0.1], o: 1.2 }));
-  }
-  if (job === 'detective') { // 목도리
-    body.add(part(torus(0.27, 0.075), accent, { p: [0, 1.25, 0], r: [PI / 2, 0, 0], o: 1.15 }));
-    body.add(part(box(0.13, 0.36, 0.05), accent, { p: [0.14, 1.02, 0.31], r: [0.1, 0, 0.15], o: 1.18 }));
+  const lapels = (c: string | Color) => {
+    for (const sx of [-1, 1]) body.add(part(cone(0.13, 0.3, 4), c, { p: [sx * 0.2, 1.2, 0.26], r: [0.2, 0, -sx * 0.5], o: 1.1 }));
+  };
+  const shirtV = () => body.add(flat(box(0.18, 0.66, 0.04), cream, { p: [0, 0.95, 0.33] }));
+  const studs = (n: number, x: number) => {
+    for (let i = 0; i < n; i++) body.add(part(sphere(0.035), GOLD, { p: [x, 1.02 - i * 0.15, 0.34], o: 1.25 }));
+  };
+  switch (job) {
+    case 'field': // 현장 수사관 — 트렌치코트 + 목도리
+      body.add(part(bell([[0.3, 1.25], [0.36, 0.9], [0.44, 0.5], [0.47, 0.28]]), main, { side: DoubleSide, o: 1.03 }));
+      shirtV(); lapels(dark);
+      body.add(part(torus(0.4, 0.04), dark, { p: [0, 0.72, 0], r: [PI / 2, 0, 0], o: 1.2 }));
+      body.add(part(box(0.12, 0.1, 0.05), GOLD, { p: [0, 0.72, 0.42], o: 1.2 }));
+      body.add(part(torus(0.27, 0.075), accent, { p: [0, 1.25, 0], r: [PI / 2, 0, 0], o: 1.15 }));
+      body.add(part(box(0.13, 0.36, 0.05), accent, { p: [0.14, 1.02, 0.31], r: [0.1, 0, 0.15], o: 1.18 }));
+      break;
+    case 'engineer': // 공장 기술자 — 작업복 + 반사띠 + 공구 벨트
+      body.add(flat(box(0.02, 0.62, 0.02), dark, { p: [0, 0.9, 0.3] }));
+      body.add(part(box(0.16, 0.14, 0.03), dark, { p: [-0.12, 1.03, 0.3], o: 1.1 }));
+      body.add(flat(torus(0.3, 0.04), '#ffe27a', { p: [0, 0.88, 0], r: [PI / 2, 0, 0] }));
+      body.add(flat(torus(0.3, 0.04), '#ffe27a', { p: [0, 0.78, 0], r: [PI / 2, 0, 0] }));
+      body.add(part(torus(0.31, 0.06), '#5a4a36', { p: [0, 0.62, 0], r: [PI / 2, 0, 0], o: 1.15 }));
+      body.add(part(box(0.14, 0.18, 0.1), '#7a6246', { p: [-0.2, 0.55, 0.26], o: 1.12 }));
+      body.add(part(cyl(0.025, 0.025, 0.3, 8), SILVER, { p: [0.22, 0.5, 0.27], r: [0, 0, 0.35], o: 1.3 })); // 렌치
+      break;
+    case 'disguise': // 위장 수사관 — 턱시도 + 나비넥타이 + 망토
+      shirtV(); lapels(main);
+      body.add(part(cone(0.09, 0.14, 3), accent, { p: [-0.11, 1.2, 0.33], r: [0, 0, -PI / 2], o: 1.2 }));
+      body.add(part(cone(0.09, 0.14, 3), accent, { p: [0.11, 1.2, 0.33], r: [0, 0, PI / 2], o: 1.2 }));
+      body.add(part(sphere(0.04), accent, { p: [0, 1.2, 0.35], o: 1.2 }));
+      body.add(part(torus(0.31, 0.05), accent, { p: [0, 0.72, 0], r: [PI / 2, 0, 0], o: 1.15 }));
+      body.add(part(cyl(0.58, 0.85, 1.1, 24, true, PI - 1.0, 2.0), accent, { p: [0, 0.65, -0.02], side: DoubleSide, o: 1.02 }));
+      break;
+    case 'archivist': // 도서관 감식관 — 흰 가운
+      body.add(part(bell([[0.3, 1.25], [0.36, 0.9], [0.44, 0.5], [0.47, 0.2]]), '#f4f1ea', { side: DoubleSide, o: 1.03 }));
+      body.add(flat(box(0.18, 0.5, 0.04), main, { p: [0, 1.0, 0.33] }));
+      lapels('#e3ddcc');
+      for (const sx of [-1, 1]) body.add(part(box(0.15, 0.13, 0.04), '#e9e3d2', { p: [sx * 0.19, 0.62, 0.42], r: [-0.12, 0, 0], o: 1.1 }));
+      body.add(flat(box(0.03, 0.12, 0.03), accent, { p: [-0.21, 0.72, 0.43] })); // 주머니에 꽂은 펜
+      body.add(part(box(0.1, 0.06, 0.03), accent, { p: [-0.13, 1.02, 0.34], o: 1.15 })); // 명찰
+      break;
+    case 'street': // 야시장 정보원 — 네온 후드 집업
+      body.add(part(torus(0.27, 0.1), main, { p: [0, 1.2, 0], r: [PI / 2, 0, 0], o: 1.1 })); // 목에 걸친 후드
+      for (const sx of [-1, 1]) body.add(flat(box(0.025, 0.24, 0.02), cream, { p: [sx * 0.05, 1.0, 0.31] }));
+      body.add(part(box(0.34, 0.14, 0.05), dark, { p: [0, 0.7, 0.3], o: 1.08 }));
+      body.add(flat(box(0.02, 0.5, 0.02), dark, { p: [0, 0.9, 0.3] }));
+      break;
+    case 'chief': // 수석 정복 — 흰 제복 + 금단추 + 어깨띠
+      body.add(part(box(0.1, 0.78, 0.04), main, { p: [0, 0.95, 0.31], r: [0, 0, 0.62], o: 1.2 }));
+      studs(4, -0.1); studs(4, 0.1);
+      body.add(part(torus(0.27, 0.05), dark, { p: [0, 1.22, 0], r: [PI / 2, 0, 0], o: 1.15 })); // 깃
+      for (const sx of [-1, 1]) body.add(part(sphere(0.13), GOLD, { p: [sx * 0.36, 1.17, 0], s: [1.1, 0.7, 1.1], o: 1.12 })); // 금장 견장
+      break;
+    default: // rookie — 감별국 제복
+      shirtV(); lapels(dark);
+      body.add(part(box(0.07, 0.34, 0.04), accent, { p: [0, 0.96, 0.35], o: 1.2 })); // 넥타이
+      studs(2, -0.12); studs(2, 0.12);
   }
 
   /* ── 진화 레이어 (직업과 무관하게 공통) ── */
@@ -180,34 +212,40 @@ export function buildHero(raw: HeroData, tier: number): Rig {
   }
 
   /* ── 팔 ── */
-  const sleeve = job === 'ninja' ? dark : job === 'nomad' || job === 'cleric' ? cream : main;
-  const wide = job === 'mage' || job === 'cleric';
+  const sleeve: Record<Job, string | Color> = {
+    rookie: main, field: main, engineer: main, disguise: dark, archivist: '#f4f1ea', street: accent, chief: '#fbfaf6',
+  };
   const mkArm = (sx: number) => {
     const g = new Group();
     g.position.set(sx * 0.35, 1.1, 0);
-    g.add(part(cap(wide ? 0.11 : 0.085, 0.26), sleeve, { p: [0, -0.22, 0] }));
+    g.add(part(cap(0.085, 0.26), sleeve[job], { p: [0, -0.22, 0] }));
     g.add(part(sphere(0.095), skin, { p: [0, -0.5, 0] }));
     return g;
   };
   const armL = mkArm(-1), armR = mkArm(1);
   body.add(armL, armR);
   // 소품은 오른손에 든다 (팔을 따라 움직인다)
-  if (hero.acc === 'lens') {
+  if (hero.acc === 'lens') { // 감별 돋보기
     const g = new Group(); g.position.set(0, -0.5, 0.05); g.rotation.set(0.2, 0, -0.3);
     g.add(flat(cyl(0.025, 0.025, 0.4, 8), '#8a5a2b', { p: [0, 0.16, 0] }));
     g.add(part(torus(0.17, 0.035), GOLD, { p: [0, 0.5, 0], o: 1.15 }));
     const glass = new Mesh(geo('lens-glass', () => new CylinderGeometry(0.165, 0.165, 0.01, 24)), glow('#bfe3ff', 0.4));
     glass.rotation.x = PI / 2; glass.position.set(0, 0.5, 0); g.add(glass);
     armR.add(g);
-  } else if (hero.acc === 'staff') {
-    const g = new Group(); g.position.set(0, -0.5, 0.05);
-    g.add(flat(cyl(0.03, 0.03, 1.5, 8), '#7a5532', { p: [0, 0.25, 0] }));
-    g.add(part(sphere(0.12), accent, { p: [0, 1.05, 0], o: 1.12 }));
+  } else if (hero.acc === 'torch') { // 손전등
+    const g = new Group(); g.position.set(0, -0.5, 0.05); g.rotation.set(0.5, 0, -0.2);
+    g.add(part(cyl(0.05, 0.05, 0.3, 12), '#3a3f4f', { p: [0, 0.12, 0], o: 1.12 }));
+    g.add(part(cyl(0.09, 0.06, 0.12, 14), SILVER, { p: [0, 0.3, 0], o: 1.12 }));
+    g.add(flat(sphere(0.045), '#fff6bf', { p: [0, 0.37, 0] }));
+    const beam = new Mesh(geo('torch-beam', () => new ConeGeometry(0.28, 0.9, 20, 1, true)), new MeshBasicMaterial({ color: '#fff3b0', transparent: true, opacity: 0.22, depthWrite: false, side: DoubleSide }));
+    beam.position.set(0, 0.85, 0); // 원뿔 끝(뾰족한 쪽)이 손전등을 향하도록 뒤집는다
+    beam.rotation.z = PI;
+    g.add(beam);
     armR.add(g);
-  } else if (hero.acc === 'flower') {
-    const g = new Group(); g.position.set(0, -0.5, 0.05); g.rotation.z = -0.25;
-    g.add(flat(cyl(0.018, 0.018, 0.34, 6), '#4d7a3c', { p: [0, 0.17, 0] }));
-    g.add(part(sphere(0.09), '#d8344c', { p: [0, 0.4, 0], o: 1.12 }));
+  } else if (hero.acc === 'notebook') { // 수사 수첩
+    const g = new Group(); g.position.set(0, -0.5, 0.06); g.rotation.set(0.3, 0.3, -0.15);
+    g.add(part(box(0.2, 0.26, 0.05), accent, { p: [0, 0.14, 0], o: 1.1 }));
+    g.add(flat(box(0.12, 0.02, 0.01), cream, { p: [0, 0.2, 0.03] }), flat(box(0.12, 0.02, 0.01), cream, { p: [0, 0.14, 0.03] }));
     armR.add(g);
   }
 
@@ -220,7 +258,7 @@ export function buildHero(raw: HeroData, tier: number): Rig {
   // 볼터치
   for (const sx of [-1, 1]) head.add(flat(sphere(0.085), '#ff8aa0', { p: [sx * 0.37, -0.1, 0.47], s: [1.3, 0.7, 0.35] }));
 
-  const eyeColor = job === 'rogue' ? '#fffdf5' : '#2a2020';
+  const eyeColor = '#2a2020';
   const eyesOpen = new Group(), eyesHappy = new Group(), eyesDizzy = new Group(), brows = new Group();
   for (const sx of [-1, 1]) {
     const x = sx * 0.23;
@@ -242,69 +280,84 @@ export function buildHero(raw: HeroData, tier: number): Rig {
   mouthOpen.visible = false; mouthWavy.visible = false;
   head.add(mouthSmile, mouthOpen, mouthWavy);
 
-  /* ── 직업별 머리 장식 ── */
+  /* ── 복장별 머리 장식 ── */
   let topY = 2.2;
   const fringe = () => part(geo('fringe', () => new SphereGeometry(R * 1.03, 24, 14, 0, PI * 2, 0, PI * 0.42)), hair, { s: [1, 0.96, 1], o: 1.02 });
+  const sideLocks = () => { for (const sx of [-1, 1]) head.add(part(cap(0.08, 0.26), hair, { p: [sx * 0.57, -0.28, -0.05], o: 1.08 })); };
   switch (job) {
-    case 'detective': {
+    case 'field': { // 중절모
       const hat = hsl(h, 22, 20);
-      head.add(fringe());
+      head.add(fringe()); sideLocks();
       head.add(part(cyl(0.42, 0.46, 0.46), hat, { p: [0, 0.78, 0] }));
       head.add(part(cyl(0.9, 0.9, 0.06, 32), hat, { p: [0, 0.52, 0], r: [0.05, 0, 0.06], o: 1.04 }));
       head.add(part(torus(0.47, 0.06), accent, { p: [0, 0.6, 0], r: [PI / 2, 0, 0], o: 1.15 }));
       topY = 2.55;
       break;
     }
-    case 'mage': {
+    case 'engineer': { // 안전모 + 헤드랜턴 + 고글
+      const hat = '#f2c744';
+      head.add(fringe()); sideLocks();
+      head.add(part(geo('hardhat', () => new SphereGeometry(0.7, 24, 12, 0, PI * 2, 0, 1.22)), hat, { s: [1, 0.92, 1], o: 1.04 }));
+      head.add(part(box(0.16, 0.08, 0.9), '#e6b52f', { p: [0, 0.66, 0], o: 1.1 })); // 안전모 능선
+      head.add(part(cyl(0.8, 0.8, 0.05, 32), '#e6b52f', { p: [0, 0.28, 0.04], o: 1.04 }));
+      head.add(part(sphere(0.09), SILVER, { p: [0, 0.47, 0.66], o: 1.15 })); // 헤드랜턴
+      head.add(flat(sphere(0.05), '#fff6bf', { p: [0, 0.47, 0.74] }));
+      for (const sx of [-1, 1]) { // 이마에 올린 고글
+        head.add(part(torus(0.1, 0.028), dark, { p: [sx * 0.22, 0.33, 0.66], r: [-0.3, 0, 0], o: 1.12 }));
+        const lens = new Mesh(geo('goggle', () => new CylinderGeometry(0.095, 0.095, 0.01, 16)), glow('#bfe3ff', 0.5));
+        lens.rotation.x = PI / 2 - 0.3; lens.position.set(sx * 0.22, 0.33, 0.66); head.add(lens);
+      }
+      topY = 2.35;
+      break;
+    }
+    case 'disguise': { // 실크햇 + 반가면
       head.add(fringe());
-      for (const sx of [-1, 1]) head.add(part(cap(0.1, 0.55), hair, { p: [sx * 0.55, -0.35, -0.05], r: [0, 0, sx * 0.12] }));
-      head.add(part(cyl(0.88, 0.88, 0.06, 32), dark, { p: [0, 0.5, 0], r: [0.08, 0, 0], o: 1.04 }));
-      head.add(part(cone(0.5, 0.85, 24), dark, { p: [0, 1.0, 0], r: [0, 0, -0.08] }));
-      head.add(part(cone(0.26, 0.55, 20), dark, { p: [0.14, 1.6, 0], r: [0, 0, -0.6] }));
-      head.add(part(torus(0.5, 0.06), accent, { p: [0, 0.57, 0], r: [PI / 2, 0, 0], o: 1.15 }));
-      head.add(flat(new OctahedronGeometry(0.1), GOLD, { p: [0, 0.98, 0.45] }));
-      topY = 2.95;
-      break;
-    }
-    case 'ninja': {
-      // 얼굴 부분만 뚫린 후드 + 이마 머리띠 + 복면
-      head.add(part(geo('hoodTop', () => new SphereGeometry(0.69, 24, 12, 0, PI * 2, 0, 0.78)), dark, { o: 1.03 }));
-      head.add(part(geo('hoodSide', () => new SphereGeometry(0.69, 24, 16, PI / 2 + 0.9, PI * 2 - 1.8, 0, PI)), dark, { o: 1.03 }));
-      head.add(part(torus(0.58, 0.06), accent, { p: [0, 0.3, 0], r: [PI / 2, 0, 0], o: 1.15 }));
-      head.add(part(box(0.32, 0.17, 0.05), SILVER, { p: [0, 0.3, 0.585], o: 1.12 }));
-      head.add(part(geo('mask', () => new SphereGeometry(0.645, 24, 10, PI / 2 - 1.0, 2.0, 1.75, 0.95)), dark, { o: 1.02 }));
-      topY = 2.28;
-      break;
-    }
-    case 'cleric': {
-      head.add(fringe());
-      head.add(part(geo('veil', () => new SphereGeometry(0.72, 24, 16, PI / 2 + 0.95, PI * 2 - 1.9, 0, PI * 0.72)), '#f6f2e8', { o: 1.03 }));
-      for (const sx of [-1, 1]) head.add(part(cap(0.1, 0.8), '#f6f2e8', { p: [sx * 0.62, -0.62, -0.05], s: [1, 1, 0.55], o: 1.06 }));
-      head.add(flat(torus(0.57, 0.035), GOLD, { p: [0, 0.3, 0], r: [PI / 2 - 0.15, 0, 0] }));
-      head.add(part(sphere(0.06), accent, { p: [0, 0.4, 0.55], o: 1.2 }));
-      for (const sx of [-1, 1]) head.add(part(cone(0.1, 0.5, 4), '#fbfaf6', { p: [sx * 0.78, 0.38, 0], r: [0, 0, -sx * 1.2], s: [1, 1, 0.4], o: 1.1 }));
-      topY = 2.28;
-      break;
-    }
-    case 'nomad': {
-      head.add(part(cap(0.1, 0.4), hair, { p: [-0.55, -0.3, 0], r: [0, 0, 0.1] }));
-      head.add(part(geo('veilFace', () => new SphereGeometry(0.645, 24, 10, PI / 2 - 1.0, 2.0, 1.7, 1.0)), '#e9dcc4', { o: 1.02 }));
-      head.add(part(sphere(0.74), cream, { p: [0, 0.55, 0], s: [1, 0.64, 1] }));
-      head.add(flat(torus(0.62, 0.05), accent, { p: [0, 0.34, 0], r: [PI / 2 - 0.08, 0, 0] }));
-      head.add(part(sphere(0.07), GOLD, { p: [0, 0.38, 0.66], o: 1.2 }));
-      head.add(part(cone(0.1, 0.55, 8), accent, { p: [0.22, 1.05, 0.15], r: [0.2, 0, -0.5], s: [1, 1, 0.45], o: 1.1 }));
-      topY = 2.75;
-      break;
-    }
-    default: { // rogue
-      head.add(part(cap(0.12, 0.6), hair, { p: [0.55, -0.1, -0.35], r: [0.3, 0, -0.45] })); // 포니테일
-      head.add(part(geo('bandana', () => new SphereGeometry(0.665, 24, 12, 0, PI * 2, 0, 1.08)), accent, { o: 1.02 }));
-      head.add(flat(torus(0.595, 0.025), '#ffd24a', { p: [0, 0.4, 0], r: [PI / 2, 0, 0] }));
-      head.add(part(sphere(0.09), accent, { p: [0.55, 0.3, -0.25], o: 1.15 }));
-      head.add(part(box(0.3, 0.05, 0.03), accent, { p: [0.72, 0.28, -0.3], r: [0, 0, 0.6], o: 1.1 }));
-      head.add(part(geo('eyemask', () => new CylinderGeometry(0.635, 0.635, 0.2, 24, 1, true, -0.95, 1.9)), '#1b1a22', { p: [0, 0.04, 0], side: DoubleSide, o: 1.02 }));
+      head.add(part(cyl(0.38, 0.4, 0.82), dark, { p: [0, 0.95, 0] }));
+      head.add(part(torus(0.4, 0.05), accent, { p: [0, 0.65, 0], r: [PI / 2, 0, 0], o: 1.15 }));
+      head.add(part(cyl(0.78, 0.78, 0.05, 32), dark, { p: [0, 0.54, 0], r: [0.04, 0, 0], o: 1.04 }));
+      head.add(part(geo('eyemask', () => new CylinderGeometry(0.635, 0.635, 0.2, 24, 1, true, -0.95, 1.9)), accent, { p: [0, 0.04, 0], side: DoubleSide, o: 1.02 }));
       for (const sx of [-1, 1]) head.add(flat(sphere(0.07), '#fffdf5', { p: [sx * 0.23, 0.04, 0.6], s: [1, 1.2, 0.4] }));
-      topY = 2.2;
+      topY = 2.85;
+      break;
+    }
+    case 'archivist': { // 올림머리 + 동그란 안경
+      head.add(fringe()); sideLocks();
+      head.add(part(sphere(0.2), hair, { p: [0, 0.74, -0.08], o: 1.1 }));
+      for (const sx of [-1, 1]) {
+        head.add(part(torus(0.15, 0.025), '#3a3f4f', { p: [sx * 0.23, 0.04, 0.6], o: 1.15 }));
+        const gl = new Mesh(geo('glasses-lens', () => new CylinderGeometry(0.145, 0.145, 0.01, 20)), glow('#d2ebff', 0.26));
+        gl.rotation.x = PI / 2; gl.position.set(sx * 0.23, 0.04, 0.6); head.add(gl);
+      }
+      head.add(flat(box(0.1, 0.02, 0.02), '#3a3f4f', { p: [0, 0.05, 0.61] }));
+      topY = 2.5;
+      break;
+    }
+    case 'street': { // 헤드폰
+      head.add(fringe());
+      head.add(part(geo('hpband', () => new TorusGeometry(0.67, 0.05, 8, 28, PI)), '#2b3140', { o: 1.12 }));
+      for (const sx of [-1, 1]) {
+        head.add(part(cyl(0.17, 0.17, 0.14, 20), accent, { p: [sx * 0.67, -0.04, 0], r: [0, 0, PI / 2], o: 1.1 }));
+        head.add(flat(cyl(0.09, 0.09, 0.16, 16), '#2b3140', { p: [sx * 0.67, -0.04, 0], r: [0, 0, PI / 2] }));
+      }
+      topY = 2.35;
+      break;
+    }
+    case 'chief': { // 군모
+      head.add(fringe());
+      head.add(part(cyl(0.56, 0.64, 0.42), '#fbfaf6', { p: [0, 0.74, 0] }));
+      head.add(part(torus(0.61, 0.05), dark, { p: [0, 0.56, 0], r: [PI / 2, 0, 0], o: 1.15 }));
+      head.add(part(sphere(0.36), '#1b1a22', { p: [0, 0.5, 0.42], s: [1.15, 0.12, 0.95], o: 1.08 })); // 챙
+      head.add(part(sphere(0.075), GOLD, { p: [0, 0.74, 0.6], o: 1.2 })); // 모표
+      topY = 2.5;
+      break;
+    }
+    default: { // rookie — 감별국 제모
+      head.add(fringe()); sideLocks();
+      head.add(part(geo('cap', () => new SphereGeometry(0.69, 24, 12, 0, PI * 2, 0, 1.18)), main, { s: [1, 0.98, 1], o: 1.04 }));
+      head.add(part(torus(0.575, 0.045), accent, { p: [0, 0.3, 0], r: [PI / 2, 0, 0], o: 1.15 }));
+      head.add(part(geo('visor', () => new CylinderGeometry(0.66, 0.66, 0.05, 24, 1, false, -1.0, 2.0)), dark, { p: [0, 0.3, 0.1], s: [1, 1, 1.25], o: 1.05 }));
+      head.add(part(sphere(0.075), GOLD, { p: [0, 0.5, 0.64], o: 1.2 }));
+      topY = 2.3;
     }
   }
 

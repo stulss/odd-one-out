@@ -4,8 +4,9 @@
 const KEY = 'ooo.v1';
 
 export type Mode = 'case' | 'normal' | 'practice' | 'blitz';
-export type Job = 'detective' | 'mage' | 'ninja' | 'cleric' | 'nomad' | 'rogue';
-export type HeroAcc = 'none' | 'lens' | 'staff' | 'flower';
+// 복장은 세계관(이상 감별국)에 맞춘 7종: 수습 제복 · 현장 수사관 · 공장 기술자 · 위장 수사관 · 도서관 감식관 · 야시장 정보원 · 수석 정복
+export type Job = 'rookie' | 'field' | 'engineer' | 'disguise' | 'archivist' | 'street' | 'chief';
+export type HeroAcc = 'none' | 'lens' | 'torch' | 'notebook';
 
 /** 캐릭터 — 색은 heroData.ts의 팔레트 번호로 저장한다 (색 값 자체를 저장하지 않는다) */
 export interface Hero {
@@ -44,7 +45,7 @@ export const DEFAULT: Store = {
   stats: { played: 0, totalStages: 0, totalTimeMs: 0 },
   streak: { count: 0, lastPlayDate: null },
   settings: { sound: true, reducedMotion: false, tuneT: 4.4, colorSafe: false, highContrast: false, hero3d: true },
-  hero: { name: '', job: 'detective', hairColor: 1, skin: 1, outfit: 0, acc: 'none' },
+  hero: { name: '', job: 'rookie', hairColor: 1, skin: 1, outfit: 0, acc: 'none' },
   prologue: false,
   mode: 'case',
   coins: 60,

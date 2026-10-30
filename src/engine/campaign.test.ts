@@ -55,23 +55,23 @@ describe('campaign', () => {
   });
 
   it('해금: 복장은 코인으로 못 사고, 소품·옷색은 가격이 있다', () => {
-    expect(isUnlocked(store, 'job', 'detective')).toBe(true);
-    expect(isUnlocked(store, 'job', 'mage')).toBe(false);
-    expect(priceOf('job', 'mage')).toBeNull();
+    expect(isUnlocked(store, 'job', 'rookie')).toBe(true);
+    expect(isUnlocked(store, 'job', 'field')).toBe(false);
+    expect(priceOf('job', 'field')).toBeNull();
     expect(isUnlocked(store, 'acc', 'lens')).toBe(true);
-    expect(isUnlocked(store, 'acc', 'staff')).toBe(false);
-    expect(priceOf('acc', 'staff')).toBe(30);
+    expect(isUnlocked(store, 'acc', 'torch')).toBe(false);
+    expect(priceOf('acc', 'torch')).toBe(30);
     expect(isUnlocked(store, 'outfit', 2)).toBe(true);
     expect(isUnlocked(store, 'outfit', 5)).toBe(false);
-    unlock(store, 'acc', 'staff');
-    expect(isUnlocked(store, 'acc', 'staff')).toBe(true);
+    unlock(store, 'acc', 'torch');
+    expect(isUnlocked(store, 'acc', 'torch')).toBe(true);
   });
 
   it('해금 안 된 캐릭터 값은 무료 기본값으로 되돌린다', () => {
-    const h = enforceUnlocks(store, { job: 'ninja' as const, acc: 'staff', outfit: 6 });
-    expect(h).toEqual({ job: 'detective', acc: 'none', outfit: 0 });
-    unlock(store, 'job', 'ninja');
-    expect(enforceUnlocks(store, { job: 'ninja' as const, acc: 'lens', outfit: 1 }).job).toBe('ninja');
+    const h = enforceUnlocks(store, { job: 'street' as const, acc: 'torch', outfit: 6 });
+    expect(h).toEqual({ job: 'rookie', acc: 'none', outfit: 0 });
+    unlock(store, 'job', 'street');
+    expect(enforceUnlocks(store, { job: 'street' as const, acc: 'lens', outfit: 1 }).job).toBe('street');
   });
 
   it('도감: 10·50·200번째에 보상 코인', () => {
@@ -120,5 +120,17 @@ describe('bosses', () => {
 
   it('보스마다 쓰는 물건이 다르다', () => {
     expect(new Set(BOSSES.map(b => b.kind)).size).toBe(BOSSES.length);
+  });
+});
+
+import { migrateUnlocked } from './campaign';
+import { normalizeHero } from './heroData';
+
+describe('이전 판타지 직업 → 세계관 복장 이전', () => {
+  it('저장된 해금 목록과 캐릭터를 새 이름으로 옮긴다', () => {
+    expect(migrateUnlocked('job:mage,acc:staff,outfit:3').split(',').sort()).toEqual(['acc:torch', 'job:disguise', 'outfit:3']);
+    expect(migrateUnlocked('job:detective,job:mage').split(',')).toEqual(['job:field', 'job:disguise']);
+    expect(normalizeHero({ name: 'a', job: 'ninja' as never, acc: 'flower' as never })).toMatchObject({ job: 'street', acc: 'notebook' });
+    expect(migrateUnlocked('')).toBe('');
   });
 });

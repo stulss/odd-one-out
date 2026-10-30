@@ -18,11 +18,11 @@ import {
   type Challenge, readChallenge, todayKeyKST, shareUrl, challengeLabel, freeChallenge, dailyChallenge,
 } from './daily';
 import { PROLOGUE, zoneOf, rankOf, tierOf, closingLine, fill, type DialogLine } from './story';
-import { normalizeHero } from './heroData';
+import { JOBS, normalizeHero } from './heroData';
 import { bossOf, type BossDef } from './bosses';
 import {
   CASES, FINALE_COINS, FINALE_JOB, HINT_PACK, HINT_PRICE, addCodex, campaignTier, caseCoins, enforceUnlocks,
-  heroTier, isCaseUnlocked, isUnlocked, priceOf, rateCase, setStars, starsOf, unlock, zoneHue, type UnlockKind,
+  heroTier, isCaseUnlocked, isUnlocked, migrateUnlocked, priceOf, rateCase, setStars, starsOf, unlock, zoneHue, type UnlockKind,
 } from './campaign';
 
 export const MODES: Record<Mode, { label: string; desc: string }> = {
@@ -122,6 +122,7 @@ type Listener = () => void;
 export function createEngine() {
   let store = Save.load();
   store.hero = normalizeHero(store.hero); // 예전 버전의 캐릭터 값이 남아 있어도 현재 선택지 안으로 맞춘다
+  store.unlocked = migrateUnlocked(store.unlocked);
   // 사건부 이전 버전에서 이미 캐릭터를 만든 사람: 지금 쓰고 있는 복장·소품·옷색은 잠그지 않는다
   if (store.hero.name && store.unlocked === '' && store.campaign.stars === '') {
     unlock(store, 'job', store.hero.job);
@@ -593,7 +594,7 @@ export function createEngine() {
       setStars(store, idx, stars);
       const job = FINALE_JOB[def.id];
       if (job && !isUnlocked(store, 'job', job)) { unlock(store, 'job', job); unlockText = `새 복장 해금: ${jobLabel(job)}`; }
-      if (def.id === CASES.length && firstClear) { coins += FINALE_COINS; unlockText = '모든 사건 해결! 보너스 코인 +' + FINALE_COINS; }
+      if (def.id === CASES.length && firstClear) { coins += FINALE_COINS; unlockText = (unlockText ? unlockText + ' · ' : '') + '모든 사건 해결! 보너스 코인 +' + FINALE_COINS; }
       store.coins += coins;
       Audio.sfx.best();
     } else {
@@ -648,7 +649,7 @@ export function createEngine() {
   }
 
   const jobLabel = (j: string) =>
-    ({ mage: '마법사', ninja: '닌자', cleric: '사제', nomad: '유랑민', rogue: '도적', detective: '탐정' } as Record<string, string>)[j] ?? j;
+    JOBS.find(([v]) => v === j)?.[1] ?? j;
 
   const nextCase = () => { if (caseResult?.hasNext) startCase(caseResult.idx + 1); else openMap(); };
   const retryCase = () => { if (run.caseIdx >= 0) startCase(run.caseIdx, true); };

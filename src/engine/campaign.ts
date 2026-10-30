@@ -90,12 +90,12 @@ export function caseCoins(stars: number, firstClear: boolean, newStars: number):
 }
 
 /** 구역 마지막 사건을 클리어하면 받는 복장 (사건 번호 → 직업) */
-export const FINALE_JOB: Record<number, Job> = { 3: 'mage', 6: 'ninja', 9: 'cleric', 12: 'nomad', 15: 'rogue' };
+export const FINALE_JOB: Record<number, Job> = { 3: 'field', 6: 'engineer', 9: 'disguise', 12: 'archivist', 15: 'street', 18: 'chief' };
 export const FINALE_COINS = 100; // 사건 18 보상
 
 // ── 해금 (옷장) ─────────────────────────────────────────────
 export type UnlockKind = 'job' | 'acc' | 'outfit';
-export const ACC_PRICE: Record<string, number> = { staff: 30, flower: 30 };
+export const ACC_PRICE: Record<string, number> = { torch: 30, notebook: 30 };
 export const OUTFIT_FREE = 3; // 옷색 앞 3개는 처음부터 쓸 수 있다
 export const OUTFIT_PRICE = 15;
 export const HINT_PRICE = 30; // 힌트 3개 묶음
@@ -105,7 +105,7 @@ const parse = (s: string) => new Set(s.split(',').filter(Boolean));
 export const unlockId = (kind: UnlockKind, key: string | number) => `${kind}:${key}`;
 
 export function isUnlocked(store: Pick<Store, 'unlocked'>, kind: UnlockKind, key: string | number): boolean {
-  if (kind === 'job' && key === 'detective') return true;
+  if (kind === 'job' && key === 'rookie') return true; // 수습 제복은 처음부터
   if (kind === 'acc' && !(String(key) in ACC_PRICE)) return true; // none · lens 는 무료
   if (kind === 'outfit' && Number(key) < OUTFIT_FREE) return true;
   return parse(store.unlocked).has(unlockId(kind, key));
@@ -127,10 +127,19 @@ export function priceOf(kind: UnlockKind, key: string | number): number | null {
 export function enforceUnlocks<T extends { job: Job; acc: string; outfit: number }>(store: Pick<Store, 'unlocked'>, h: T): T {
   return {
     ...h,
-    job: isUnlocked(store, 'job', h.job) ? h.job : 'detective',
+    job: isUnlocked(store, 'job', h.job) ? h.job : 'rookie',
     acc: isUnlocked(store, 'acc', h.acc) ? h.acc : 'none',
     outfit: isUnlocked(store, 'outfit', h.outfit) ? h.outfit : 0,
   };
+}
+
+/** 이전 버전(판타지 직업·옛 소품)으로 저장된 해금 목록을 지금 이름으로 옮긴다 */
+export function migrateUnlocked(s: string): string {
+  const map: Record<string, string> = {
+    'job:detective': 'job:field', 'job:mage': 'job:disguise', 'job:ninja': 'job:street', 'job:cleric': 'job:archivist',
+    'job:nomad': 'job:engineer', 'job:rogue': 'job:rookie', 'acc:staff': 'acc:torch', 'acc:flower': 'acc:notebook',
+  };
+  return [...new Set(s.split(',').filter(Boolean).map(id => map[id] ?? id))].join(',');
 }
 
 // ── 도감: 물건별 발견 횟수 ───────────────────────────────────
