@@ -1,8 +1,8 @@
 # 딱 하나 이상함
 
 여러 개 중 딱 하나 다른 것을 제한 시간 안에 찾는 브라우저 관찰력 게임.
-프레임워크·빌드도구·이미지 파일·음원 파일 없이
-순수 HTML / CSS / JavaScript와 Web Audio API·Canvas만으로 만들었습니다.
+React + TypeScript(Vite)로 만들었고, 이미지 파일·음원 파일 없이
+CSS 도형과 Web Audio API·Canvas만으로 화면과 소리를 그립니다.
 
 > 과제 "내가 설계한 미니게임" 제출용 프로젝트입니다.
 >
@@ -42,32 +42,50 @@
 각 축에는 **지각 임계값**이 정의되어 있어, 후반에도 "아무도 못 찾는 판"이 나오지 않습니다.
 도형은 사각·원·마름모·육각 4종이며 전부 CSS `clip-path`로 그립니다.
 
+## 실행
+
+```bash
+npm install
+npm run dev        # 개발 서버 (http://localhost:5173)
+npm run build      # 타입 검사 + 배포용 빌드 → dist/
+npm run preview    # 빌드 결과 확인
+npm test           # 순수 로직 단위 테스트 (vitest)
+```
+
+배포는 Vercel이 `vercel.json`에 따라 `npm run build` → `dist/`를 서빙합니다.
+
 ## 폴더 구조
 
 ```
 odd-one-out/
-├─ index.html                  크리티컬 CSS 인라인, 5화면(타이틀/게임/일시정지/결과/설정)
+├─ index.html                  Vite 진입점 (메타·OG 태그, #root)
+├─ vite.config.ts              Vite + React + PWA(서비스 워커·매니페스트 자동 생성)
+├─ public/                     아이콘 · og-image.png
 ├─ src/
-│  ├─ main.js                  부트스트랩 · DOM 배선
-│  ├─ game.js                  상태 머신 TITLE → PLAY ⇄ PAUSED → RESULT
-│  ├─ rng.js                   시드 난수(xmur3 + mulberry32) · 도전장 코드 6자리
-│  ├─ stage.js                 스테이지 생성 · 공정성 검증 · 차이 축 10종
-│  ├─ render.js                DOM 그리드 렌더 (노드 재사용, 생성/삭제 0)
-│  ├─ input.js                 포인터 + 키보드, 연속입력 잠금
-│  ├─ timer.js                 rAF 루프 1개, 일시정지·포커스 복귀 보정
-│  ├─ save.js                  localStorage · 손상값 방어
-│  ├─ daily.js                 오늘의 문제(KST 고정) · 도전장 URL
-│  ├─ card.js                  Canvas 결과 카드 1080×1350
-│  ├─ share.js                 Web Share API + 폴백 3종
-│  ├─ audio.js                 WebAudio 효과음 합성
-│  └─ logger.js                플레이 기록 · CSV · 난이도별 중앙값
-├─ prototype/                  단계별 실제 구현 기록 (동결)
+│  ├─ main.tsx · App.tsx       부트스트랩 · 화면 전환 · 연출 연결
+│  ├─ engine/                  React를 모르는 게임 로직 (단위 테스트 대상)
+│  │  ├─ game.ts               상태 머신 HERO/STORY → TITLE → PLAY ⇄ PAUSED → RESULT, 구독 가능한 스냅샷
+│  │  ├─ rng.ts                시드 난수(xmur3 + mulberry32) · 도전장 코드 6자리
+│  │  ├─ stage.ts              스테이지 생성 · 공정성 검증 · 차이 축 10종
+│  │  ├─ timer.ts              rAF 루프 1개, 일시정지·포커스 복귀 보정
+│  │  ├─ save.ts · logger.ts   localStorage(손상값 방어) · 플레이 기록
+│  │  ├─ daily.ts              오늘의 문제(KST 고정) · 도전장 URL
+│  │  ├─ story.ts · heroData.ts · achieve.ts   세계관·구역·등급 / 캐릭터 선택지 / 업적
+│  │  ├─ fx.ts · audio.ts      파티클·흔들림·3D 등장 / WebAudio 효과음 합성
+│  │  └─ card.ts · share.ts    Canvas 결과 카드 1080×1350 / Web Share + 폴백
+│  ├─ components/              Hud · Board · Title/Hero/Story/Result/Pause 화면 · 설정 · 캐릭터
+│  ├─ hooks/useEngine.tsx      엔진 ↔ React 연결 (useSyncExternalStore)
+│  └─ styles/                  base.css · theme.css
+├─ prototype/                  단계별 실제 구현 기록 (동결 — 바닐라 JS 시절)
 │  ├─ STEPS.md                 각 단계에서 무엇을 추가하고 무엇을 측정했는지
 │  ├─ step1~step6/             단계별 완전 실행본
 │  ├─ shots/                   증거 스크린샷 60장 (3상태 × 4해상도)
 │  └─ shot.py                  촬영 스크립트 (Playwright)
-└─ docs/                       설계 문서
+└─ docs/                       설계 문서 (바닐라 JS 시절 작성 — 구조 설명은 위 목록이 최신)
 ```
+
+**구조 원칙** — 게임 규칙·타이머·저장은 `engine/`에 두고 React는 화면만 맡습니다.
+매 프레임 바뀌는 시간 게이지와 파티클은 React 상태를 거치지 않고 직접 갱신해 리렌더를 만들지 않습니다.
 
 **단계별 실제 구현 기록** → [`prototype/`](prototype/STEPS.md)
 `step1`~`step6`을 한 단계씩 실제로 만들고 검증한 순서가 그대로 남아 있습니다.
@@ -77,18 +95,18 @@ odd-one-out/
 - **모드**: 일반 / 30초 도전(전체 30초 안에 몇 단계) / 연습(시간 제한 없음, 차이 축 선택, 기록 없음). 도전장·오늘의 문제는 항상 일반 모드입니다.
 - **업적 10종**: 설정 시트에서 확인합니다.
 - **접근성**: 색 구분 보조(색조·채도 차이를 밝기 차이로 표시, 문제 자체는 동일), 고대비, 스크린리더 안내(`aria-live`).
-- **세계관·캐릭터**: 이상 감별국의 신입 감별사가 되어 5단계마다 구역(수습 훈련실 → 복제 공장 → 거울 미로 → …)을 지나며 안내 로봇 '렌즈'의 이야기를 듣습니다. 이름·몸 모양·색·액세서리를 직접 고르며 전부 CSS 도형입니다(`hero.js`, `story.js`, `dialog.js`).
-- **연출**: 정답 파티클·콤보 단계별 효과·오답 화면 흔들림·판 3D 등장·구역별 배경색 전환(`fx.js`, `theme.css`). 공정성을 위해 게임판에는 상시 기울이기/그림자를 걸지 않습니다. '움직임 줄이기'를 켜면 모든 연출이 꺼집니다.
-- **PWA**: `manifest.webmanifest` + `sw.js`로 오프라인 실행·홈 화면 설치. 파일을 바꿔 배포하면 `sw.js`의 `VERSION`을 올립니다.
-- **공유 미리보기**: `og-image.png`(1200×630). 아이콘·OG는 `python tools/make_icons.py`로 다시 만듭니다.
+- **세계관·캐릭터**: 이상 감별국의 신입 감별사가 되어 5단계마다 구역(수습 훈련실 → 복제 공장 → 거울 미로 → …)을 지나며 안내 로봇 '렌즈'의 이야기를 듣습니다. 이름·몸 모양·색·액세서리를 직접 고르며 전부 CSS 도형입니다(`Hero.tsx`, `story.ts`, `StoryScreen.tsx`).
+- **연출**: 정답 파티클·콤보 단계별 효과·오답 화면 흔들림·판 3D 등장·구역별 배경색 전환(`fx.ts`, `theme.css`). 공정성을 위해 게임판에는 상시 기울이기/그림자를 걸지 않습니다. '움직임 줄이기'를 켜면 모든 연출이 꺼집니다.
+- **PWA**: 서비스 워커·매니페스트를 빌드 때 자동 생성합니다(오프라인 실행·홈 화면 설치). 새 버전은 자동으로 교체되므로 버전을 손으로 올릴 필요가 없습니다.
+- **공유 미리보기**: `public/og-image.png`(1200×630). 아이콘·OG는 `python tools/make_icons.py`로 다시 만듭니다.
 
 ## 특징
 
-- **외부 자원 0개** — 라이브러리·웹폰트·이미지·음원·CDN을 하나도 쓰지 않습니다. 소스 전체가 80KB입니다.
+- **런타임 의존성은 React뿐** — 웹폰트·이미지·음원·CDN은 쓰지 않습니다. 빌드 결과 JS는 약 87KB(gzip)입니다.
 - **이미지 파일 0개** — 게임 오브젝트를 전부 CSS로 그립니다. 차이를 1px·3° 단위로 **정확히 제어**해야 난이도 곡선이 성립하는데, 래스터 이미지는 축소 과정에서 차이가 뭉개져 불공정한 실패를 만듭니다.
 - **음원 파일 0개** — 효과음을 Web Audio API 오실레이터로 합성합니다.
 - **같은 링크 = 같은 문제** — 시드 난수로 구현해 서버 없이 '오늘의 문제'와 '도전장'이 성립합니다. 날짜는 KST 고정이라 해외에서 열어도 같은 문제입니다.
-- **끊기지 않는 루프** — rAF 루프가 앱 전체에 1개뿐이고, DOM 노드를 재사용해 스테이지 전환 시 생성/삭제가 0입니다.
+- **끊기지 않는 루프** — rAF 루프가 앱 전체에 1개뿐이고, 게이지·파티클은 리렌더 없이 갱신합니다. 칸은 안정적인 key로 재사용됩니다.
 - **저장값을 못 믿는 설계** — 현재 판의 값은 **아예 저장하지 않습니다.** 저장하면 초기화 코드를 따로 만들어야 하고 반드시 빠뜨리는 항목이 생깁니다. 저장값이 깨져 있어도(빈값/문자열/누락/타입오류/배열) 기본값으로 실행됩니다.
 - **선택권** — 음소거와 움직임 줄이기를 화면에서 즉시 켜고 끌 수 있습니다. 움직임 줄이기는 효과를 없애는 대신 색 점멸로 대체해, 사건 인지 자체는 유지합니다.
 

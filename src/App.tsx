@@ -1,0 +1,126 @@
+import { useEffect, useRef, useState } from 'react';
+import { useEngine, useSnapshot } from './hooks/useEngine';
+import { createFx } from './engine/fx';
+import type { Screen } from './engine/game';
+import { Hud } from './components/Hud';
+import { Board } from './components/Board';
+import { TitleScreen } from './components/TitleScreen';
+import { HeroScreen } from './components/HeroScreen';
+import { StoryScreen } from './components/StoryScreen';
+import { PauseScreen, ResultScreen } from './components/ResultScreen';
+import { SettingsSheet } from './components/SettingsSheet';
+
+const STATUS: Record<Screen, string> = {
+  TITLE: '대기 중', PLAY: '진행 중', PAUSED: '일시정지', RESULT: '종료', HERO: '캐릭터 만들기', STORY: '이야기',
+};
+
+export function App() {
+  const engine = useEngine();
+  const snap = useSnapshot();
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const appRef = useRef<HTMLDivElement>(null);
+  const layerRef = useRef<HTMLDivElement>(null);
+  const flashRef = useRef<HTMLDivElement>(null);
+  const stageAreaRef = useRef<HTMLElement>(null);
+  const boardRef = useRef<HTMLDivElement>(null);
+
+  // 엔진 시작 · 포커스 이탈 감시 · 개발용 핸들
+  useEffect(() => {
+    const detach = engine.attach();
+    engine.boot();
+    (window as unknown as { __game: unknown }).__game = engine;
+    return detach;
+  }, [engine]);
+
+  // 설정이 바뀌면 문서 속성(움직임 줄이기·고대비)에 반영 — CSS와 연출 코드가 이 속성을 읽는다
+  const { reducedMotion, highContrast } = snap.store.settings;
+  useEffect(() => {
+    document.documentElement.dataset.reduced = reducedMotion ? 'on' : 'off';
+    document.documentElement.dataset.contrast = highContrast ? 'on' : 'off';
+  }, [reducedMotion, highContrast]);
+
+  // 구역 테마색 (CSS 변수 --zh가 부드럽게 전환된다)
+  useEffect(() => {
+    document.documentElement.style.setProperty('--zh', String(snap.themeHue));
+  }, [snap.themeHue]);
+
+  // 연출: 엔진이 알려 주는 사건(정답·오답·새 판…)을 DOM 효과로 바꾼다. 리렌더 없이 직접 그린다.
+  useEffect(() => {
+    const app = appRef.current, layer = layerRef.current, flash = flashRef.current;
+    const area = stageAreaRef.current, board = boardRef.current;
+    if (!app || !layer || !flash || !area || !board) return;
+    const fx = createFx({ app, layer, flash, shakeTarget: area, board });
+    const mark = (i: number, cls: string) => {
+      const el = board.children[i];
+      if (!el) return;
+      el.classList.add(cls);
+      window.setTimeout(() => el.classList.remove(cls), 260);
+    };
+    return engine.onFx(e => {
+      switch (e.type) {
+        case 'correct':
+          mark(e.index, 'is-correct');
+          fx.burst(board.children[e.index], e.power, e.hue);
+          if (e.milestone) { fx.shake(0.35); fx.pulse('rgb(255 180 84)', 0.45); }
+          break;
+        case 'wrong':
+          mark(e.index, 'is-wrong');
+          fx.shake(0.55);
+          fx.pulse('rgb(255 107 107)', 0.55);
+          break;
+        case 'over':
+          fx.shake(0.7);
+          fx.pulse('rgb(255 107 107)', 0.5);
+          break;
+        case 'stage':
+          fx.boardIn();
+          break;
+        case 'zone':
+          fx.pulse(`hsl(${e.hue} 80% 55%)`, 0.6);
+          break;
+      }
+    });
+  }, [engine]);
+
+  // 토스트
+  const toastId = snap.toast?.id;
+  const [toastOn, setToastOn] = useState(false);
+  useEffect(() => {
+    if (toastId == null) return;
+    setToastOn(true);
+    const t = window.setTimeout(() => setToastOn(false), 1600);
+    return () => clearTimeout(t);
+  }, [toastId]);
+
+  const { screen } = snap;
+  return (
+    <div id="app" ref={appRef} data-screen={screen}>
+      <div id="fxLayer" ref={layerRef} aria-hidden="true" />
+      <div id="flash" ref={flashRef} aria-hidden="true" />
+
+      <Hud onOpenSettings={() => setSettingsOpen(true)} />
+      <Board stageAreaRef={stageAreaRef} boardRef={boardRef} />
+
+      <footer id="info">
+        <div><b>규칙</b> 여러 개 중 딱 하나만 다릅니다. 제한 시간 안에 그것을 찾으세요. 오답은 시간 1초 차감.</div>
+        <div><b>조작</b> 클릭·터치 · 방향키로 이동 후 Enter · P 또는 Esc로 일시정지</div>
+        <div id="statusLine">
+          {`상태: ${STATUS[screen]} · 단계 ${snap.n} · 난이도 T=${snap.store.settings.tuneT.toFixed(1)}`}
+        </div>
+      </footer>
+
+      {screen === 'TITLE' && <TitleScreen onOpenSettings={() => setSettingsOpen(true)} />}
+      {screen === 'HERO' && <HeroScreen />}
+      {screen === 'STORY' && snap.dialog && (
+        <StoryScreen key={snap.dialog.id} req={snap.dialog} onDone={() => engine.finishDialog()} />
+      )}
+      {screen === 'PAUSED' && <PauseScreen />}
+      {screen === 'RESULT' && <ResultScreen />}
+
+      {settingsOpen && <SettingsSheet onClose={() => setSettingsOpen(false)} />}
+
+      <div id="toast" role="status" aria-live="polite" className={toastOn ? 'show' : ''}>{snap.toast?.msg}</div>
+      <div id="srLive" className="sr-only" aria-live="polite">{snap.announce.msg}</div>
+    </div>
+  );
+}

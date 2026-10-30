@@ -1,0 +1,148 @@
+:root{
+  --bg:#0E1116; --bg-soft:#161B22; --line:#232A34;
+  --ink:#E8EDF4; --ink-dim:#8A94A6; --ink-faint:#5A6272;
+  --brand:#5EE6C5; --warn:#FFB454; --bad:#FF6B6B;
+}
+/* 고대비 — 보조 글씨와 경계선을 더 진하게, 포커스 링을 두껍게 */
+:root[data-contrast="on"]{ --ink-dim:#CBD3E0; --ink-faint:#AEB8C8; --line:#566074 }
+:root[data-contrast="on"] .cell:focus-visible{ outline:4px solid #fff; outline-offset:3px }
+:root[data-contrast="on"] .icon,:root[data-contrast="on"] .btn.ghost{ border:1px solid var(--line) }
+.sr-only{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap }
+*{ box-sizing:border-box; margin:0; padding:0 }
+html,body{ overflow-x:hidden; height:100% }
+body{
+  background:var(--bg); color:var(--ink);
+  font:15px/1.55 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo",Pretendard,"Malgun Gothic",sans-serif;
+  -webkit-tap-highlight-color:transparent; user-select:none; -webkit-user-select:none;
+  overscroll-behavior:none;
+}
+button{ font:inherit; color:inherit; cursor:pointer; border:0; background:none }
+
+#app{
+  position:relative;
+  display:grid; grid-template-rows:auto 1fr auto;
+  height:100dvh; max-width:720px; margin:0 auto;
+  padding:calc(10px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right))
+          calc(10px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left));
+  gap:10px;
+}
+
+/* ── 헤더 ─────────────────────────────────────────── */
+#hud{ display:grid; gap:8px }
+#gaugeTrack{ height:6px; background:var(--line); border-radius:99px; overflow:hidden }
+#gauge{ height:100%; background:var(--brand); transform-origin:left; transform:scaleX(1);
+        transition:background .2s linear }
+#gauge.warn{ background:var(--warn) }
+#hudRow{ display:flex; align-items:center; gap:10px; font-variant-numeric:tabular-nums }
+#hudRow .k{ color:var(--ink-faint); font-size:12px; letter-spacing:.06em }
+#hudRow b{ font-size:20px }
+#hudRow .sp{ margin-left:auto; display:flex; gap:4px }
+.icon{ width:38px; height:38px; border-radius:10px; background:var(--bg-soft);
+       display:grid; place-items:center; font-size:15px; color:var(--ink-dim) }
+.icon:hover{ color:var(--ink) }
+
+/* ── 게임판 ───────────────────────────────────────── */
+#stageArea{ display:grid; place-items:center; min-height:0 }
+#board{
+  display:grid;
+  grid-template-columns:repeat(var(--cols,4), 1fr);
+  grid-template-rows:repeat(var(--rows,6), 1fr);
+  gap:8px;
+}
+.cell{
+  width:100%; height:100%; border-radius:18%;
+  background:hsl(var(--hue,224) 62% 58%);
+  transition:transform .12s ease, background .12s linear;
+}
+.cell.shape-circle{ border-radius:50% }
+.cell.shape-diamond{ clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%); border-radius:0 }
+.cell.shape-hexagon{ clip-path:polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%); border-radius:0 }
+.cell:focus-visible{ outline:3px solid var(--brand); outline-offset:3px }
+.cell.is-correct{ animation:pop .22s ease }
+.cell.is-wrong{ animation:shake .22s ease; background:var(--bad) !important }
+.cell.is-answer{ outline:3px solid var(--brand); outline-offset:4px }
+@keyframes pop{ 50%{ transform:scale(1.18) } }
+@keyframes shake{ 25%{ transform:translateX(-6px) } 75%{ transform:translateX(6px) } }
+
+/* 움직임 줄이기 — 효과를 없애지 않고 '색 점멸'로 대체한다 (사건 인지는 유지) */
+:root[data-reduced="on"] .cell{ transition:background .12s linear }
+:root[data-reduced="on"] .cell.is-correct{ animation:none; background:var(--brand) !important }
+:root[data-reduced="on"] .cell.is-wrong{ animation:none }
+:root[data-reduced="on"] .overlay{ animation:none }
+@media (prefers-reduced-motion:reduce){
+  .cell.is-correct,.cell.is-wrong{ animation:none }
+}
+
+/* ── 하단 상시 정보 (과제 완료기준 1) ─────────────── */
+#info{ font-size:12.5px; color:var(--ink-faint); line-height:1.7; border-top:1px solid var(--line); padding-top:8px }
+#info b{ color:var(--ink-dim); font-weight:600 }
+#statusLine{ color:var(--brand) }
+
+/* ── 오버레이 화면 ────────────────────────────────── */
+.overlay{
+  position:absolute; inset:0; z-index:5;
+  display:none; flex-direction:column; align-items:center; justify-content:safe center;
+  gap:14px; padding:24px; text-align:center;
+  background:rgba(14,17,22,.94); backdrop-filter:blur(4px);
+  animation:fade .18s ease; overflow-y:auto;
+}
+@keyframes fade{ from{ opacity:0 } }
+#app[data-screen="TITLE"]  #screenTitle,
+#app[data-screen="HERO"]   #screenHero,
+#app[data-screen="STORY"]  #screenStory,
+#app[data-screen="PAUSED"] #screenPause,
+#app[data-screen="RESULT"] #screenResult{ display:flex }
+
+h1{ font-size:30px; letter-spacing:-.02em }
+.sub{ color:var(--ink-dim); font-size:14px }
+.rules{ background:var(--bg-soft); border:1px solid var(--line); border-radius:14px;
+        padding:14px 16px; font-size:13.5px; color:var(--ink-dim); text-align:left;
+        max-width:340px; line-height:1.8 }
+.rules b{ color:var(--ink) }
+.btn{ min-width:240px; padding:15px 20px; border-radius:14px; font-weight:700;
+      background:var(--brand); color:#08221C; transition:filter .15s }
+.btn:hover{ filter:brightness(1.08) }
+.btn.ghost{ background:var(--bg-soft); color:var(--ink); border:1px solid var(--line) }
+.modes{ display:flex; gap:6px; background:var(--bg-soft); border:1px solid var(--line);
+        border-radius:12px; padding:4px }
+.modes button{ padding:8px 14px; border-radius:9px; font-size:13.5px; font-weight:600; color:var(--ink-dim) }
+.modes button[aria-pressed="true"]{ background:var(--brand); color:#08221C }
+#modeDesc{ font-size:12.5px; color:var(--ink-dim); max-width:300px }
+#practiceAxis{ background:var(--bg-soft); color:var(--ink); border:1px solid var(--line);
+               border-radius:10px; padding:8px 10px; font:inherit; font-size:13.5px }
+#modeBox[hidden],#axisBox[hidden]{ display:none }
+#achList{ display:grid; grid-template-columns:1fr 1fr; gap:6px; list-style:none }
+#achList li{ display:flex; gap:8px; align-items:center; font-size:12.5px; padding:7px 9px;
+             background:var(--bg); border:1px solid var(--line); border-radius:10px; color:var(--ink-faint) }
+#achList li.on{ color:var(--ink); border-color:var(--brand) }
+#achList li small{ display:block; font-size:11px; color:var(--ink-faint) }
+#resultAch{ color:var(--brand); font-size:13px }
+.big{ font-size:76px; font-weight:800; line-height:1; font-variant-numeric:tabular-nums }
+#resultBest{ color:var(--ink-dim); font-size:14px }
+#resultBest.is-best{ color:var(--brand); font-weight:700 }
+#cardCanvas{ width:150px; height:187px; border-radius:10px; border:1px solid var(--line) }
+#rivalBanner{ color:var(--warn); font-size:13px }
+#fallback{ display:flex; gap:8px; flex-wrap:wrap; justify-content:center }
+#fallback[hidden]{ display:none }
+#fallback .btn{ min-width:0; padding:11px 14px; font-size:13px }
+
+/* ── 설정 시트 ────────────────────────────────────── */
+#settings{ position:absolute; inset:auto 0 0 0; z-index:9;
+  background:var(--bg-soft); border-top:1px solid var(--line);
+  border-radius:18px 18px 0 0; padding:18px 18px calc(18px + env(safe-area-inset-bottom));
+  display:grid; gap:12px; max-height:88dvh; overflow:auto }
+#settings[hidden]{ display:none }
+.row{ display:flex; align-items:center; gap:12px; font-size:14px }
+.row label{ flex:1 }
+.row input[type=range]{ flex:1 }
+.hint{ font-size:12px; color:var(--ink-faint); line-height:1.6 }
+pre#logSummary{ font:12px/1.7 ui-monospace,Menlo,Consolas,monospace; color:var(--ink-dim);
+  background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:10px;
+  white-space:pre-wrap; max-height:130px; overflow:auto }
+
+#toast{ position:absolute; left:50%; bottom:80px; transform:translate(-50%,10px); z-index:20;
+  background:var(--ink); color:var(--bg); padding:10px 16px; border-radius:99px; font-size:13px;
+  font-weight:600; opacity:0; pointer-events:none; transition:opacity .2s, transform .2s }
+#toast.show{ opacity:1; transform:translate(-50%,0) }
+
+@media (min-width:900px){ #board{ gap:10px } h1{ font-size:34px } }

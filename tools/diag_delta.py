@@ -3,7 +3,7 @@ from playwright.sync_api import sync_playwright
 sys.stdout.reconfigure(encoding='utf-8')
 JS = """
 async () => {
-  const S = await import('./src/stage.js?v=2');
+  const S = await import('/src/engine/stage.ts');
   const rows=[];
   for (const n of [5,10,15,20,25,30]) {
     const r={n};
@@ -21,7 +21,7 @@ async () => {
 """
 with sync_playwright() as p:
     b=p.chromium.launch(); pg=b.new_context().new_page()
-    pg.goto("https://odd-one-out-nine.vercel.app/"); pg.wait_for_timeout(1500)
+    pg.goto("http://localhost:5173/"); pg.wait_for_timeout(1500)  # npm run dev 필요
     rows=pg.evaluate(JS); b.close()
 print("차이 여유(%) — 낮을수록 어렵다. 0%면 지각 임계값(더 못 좁힘)")
 print(f"{'단계':>4} {'T=3.6':>7} {'T=4.4':>7} {'T=5.4':>7}   {'3.6→5.4 차':>10}")

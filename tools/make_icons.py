@@ -4,7 +4,7 @@ import os
 from PIL import Image, ImageDraw, ImageFont
 
 BG, BLUE, MINT, INK, DIM = '#0E1116', '#3D6BFF', '#5EE6C5', '#E8EDF4', '#8A94A6'
-OUT = 'icons'
+OUT = 'public'
 os.makedirs(OUT, exist_ok=True)
 SS = 4  # 슈퍼샘플링 배율 (안티에일리어싱)
 
@@ -61,6 +61,6 @@ for r in range(rows):
 d.text((90, 190), '딱 하나', font=font(120), fill=INK)
 d.text((90, 330), '이상함', font=font(120), fill=MINT)
 d.text((94, 485), '여러 개 중 딱 하나만 다릅니다. 찾을 수 있나요?', font=font(34), fill=DIM)
-og.save('og-image.png', optimize=True)
-for f in sorted(os.listdir(OUT)) + ['../og-image.png']:
-    p = os.path.join(OUT, f); print(f, os.path.getsize(p))
+og.save('public/og-image.png', optimize=True)
+for f in sorted(os.listdir(OUT)):
+    print(f, os.path.getsize(os.path.join(OUT, f)))

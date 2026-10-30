@@ -10,3 +10,5 @@ Thumbs.db
 
 # Office가 파일을 열어둔 동안 만드는 잠금 파일
 ~$*
+node_modules/
+dist/

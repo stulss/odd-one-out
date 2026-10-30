@@ -1,26 +1,38 @@
 // 결과 카드 — Canvas로 런타임 생성 (이미지 파일 0개).
 // 카드에 '정답 없는 마지막 격자'를 넣어, 보는 사람이 카드 자체를 풀게 만든다.
-import { DIFF_AXES } from './stage.js';
+import type { Stage } from './stage';
 
 const W = 1080, H = 1350;
 
-export function drawCard(canvas, { stages, bestReaction, avgReaction, label, stage, isBest, who }){
-  canvas.width = W; canvas.height = H;
+export interface CardData {
+  stages: number;
+  bestReaction: number | null;
+  avgReaction: number | null;
+  label: string;
+  stage: Stage | null;
+  isBest: boolean;
+  who?: string;
+}
+
+export function drawCard(canvas: HTMLCanvasElement, d: CardData): HTMLCanvasElement {
+  const { stages, bestReaction, avgReaction, label, stage, isBest, who } = d;
+  canvas.width = W;
+  canvas.height = H;
   const g = canvas.getContext('2d');
+  if (!g) return canvas;
 
   g.fillStyle = '#0E1116'; g.fillRect(0, 0, W, H);
   g.strokeStyle = 'rgba(94,230,197,.35)'; g.lineWidth = 3;
   g.strokeRect(40, 40, W - 80, H - 80);
 
   g.textAlign = 'center';
-  const font = (size, weight = '700') =>
+  const font = (size: number, weight = '700') =>
     `${weight} ${size}px -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif`;
 
   // 상단 워드마크
   g.fillStyle = '#5EE6C5'; g.font = font(46);
   g.fillText('딱 하나 이상함', W / 2, 150);
-
-  if (who){ g.fillStyle = '#E8EDF4'; g.font = font(36, '600'); g.fillText(who, W / 2, 210); }
+  if (who) { g.fillStyle = '#E8EDF4'; g.font = font(36, '600'); g.fillText(who, W / 2, 210); }
 
   // 거대 숫자
   g.fillStyle = '#E8EDF4'; g.font = font(260);
@@ -28,7 +40,7 @@ export function drawCard(canvas, { stages, bestReaction, avgReaction, label, sta
   g.fillStyle = '#8A94A6'; g.font = font(52, '500');
   g.fillText('단계', W / 2, 490);
 
-  if (isBest){
+  if (isBest) {
     g.fillStyle = '#5EE6C5'; g.font = font(40);
     g.fillText('★ 최고 기록 갱신', W / 2, 560);
   }
@@ -48,7 +60,7 @@ export function drawCard(canvas, { stages, bestReaction, avgReaction, label, sta
   return canvas;
 }
 
-function drawGrid(g, stage, cx, top, boxW){
+function drawGrid(g: CanvasRenderingContext2D, stage: Stage, cx: number, top: number, boxW: number) {
   const gap = 12;
   const cell = Math.min((boxW - gap * (stage.cols - 1)) / stage.cols,
                         (420 - gap * (stage.rows - 1)) / stage.rows);
@@ -60,7 +72,7 @@ function drawGrid(g, stage, cx, top, boxW){
   g.strokeStyle = 'rgba(94,230,197,.18)'; g.lineWidth = 2;
   g.strokeRect(x0 - 24, y0 - 24, gw + 48, gh + 48);
 
-  for (let i = 0; i < stage.total; i++){
+  for (let i = 0; i < stage.total; i++) {
     const r = Math.floor(i / stage.cols), c = i % stage.cols;
     const x = x0 + c * (cell + gap), y = y0 + r * (cell + gap);
     const odd = i === stage.answer;
@@ -76,7 +88,7 @@ function drawGrid(g, stage, cx, top, boxW){
 }
 
 // 캔버스에서 재현 가능한 축만 반영한다. 나머지는 기본 모양으로 그린다.
-function applyDiff(g, stage, odd){
+function applyDiff(g: CanvasRenderingContext2D, stage: Stage, odd: boolean) {
   if (!odd) return;
   const d = stage.delta;
   if (stage.axis === 'rotate') g.rotate(d * Math.PI / 180);
@@ -86,30 +98,30 @@ function applyDiff(g, stage, odd){
   else if (stage.axis === 'opacity') g.globalAlpha = 1 - d / 100;
 }
 
-function fillFor(stage, odd){
+function fillFor(stage: Stage, odd: boolean): string {
   const h = stage.hue;
   if (!odd) return `hsl(${h} 62% 58%)`;
   const d = stage.delta;
-  if (stage.axis === 'hue')   return `hsl(${(h + d) % 360} 62% 58%)`;
+  if (stage.axis === 'hue') return `hsl(${(h + d) % 360} 62% 58%)`;
   if (stage.axis === 'light') return `hsl(${h} 62% ${Math.min(92, 58 + d * 0.5)}%)`;
-  if (stage.axis === 'sat')   return `hsl(${h} ${Math.max(5, 62 - d)}% 58%)`;
+  if (stage.axis === 'sat') return `hsl(${h} ${Math.max(5, 62 - d)}% 58%)`;
   return `hsl(${h} 62% 58%)`;
 }
 
-function round(g, x, y, w, h, r){
+function round(g: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
   g.beginPath();
   if (g.roundRect) g.roundRect(x, y, w, h, r);
   else {
     g.moveTo(x + r, y);
     g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r);
-    g.arcTo(x, y + h, x, y, r);         g.arcTo(x, y, x + w, y, r);
+    g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r);
     g.closePath();
   }
 }
 
-const fmt = v => (v == null ? '-' : v.toFixed(2));
+const fmt = (v: number | null) => (v == null ? '-' : v.toFixed(2));
 
-export function toBlob(canvas){
+export function toBlob(canvas: HTMLCanvasElement): Promise<Blob | null> {
   return new Promise(res => {
     try { canvas.toBlob(b => res(b), 'image/png'); } catch { res(null); }
   });

@@ -5,7 +5,7 @@
 #    용도는 하나뿐: **T를 바꾸면 난이도가 실제로 달라지는가**를 확인하는 설계 점검.
 #
 # 방식
-#   - 실제 게임의 스테이지 생성기(src/stage.js)를 그대로 불러 쓴다.
+#   - 실제 게임의 스테이지 생성기(src/engine/stage.ts)를 그대로 불러 쓴다.
 #     즉 격자 크기·차이 축·delta·제한 시간은 진짜 게임과 완전히 같다.
 #   - 사람 대신 아래 반응 모델이 판정한다. 이 모델의 계수가 절대 난이도를 좌우하므로
 #     "몇 단계까지 갔는가"의 절대값은 의미가 없고, **T끼리의 상대 비교만** 의미가 있다.
@@ -26,13 +26,13 @@ from playwright.sync_api import sync_playwright
 sys.stdout.reconfigure(encoding='utf-8')
 os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-BASE = "https://odd-one-out-nine.vercel.app/"
+BASE = "http://localhost:5173/"   # 리액트 전환 후: 소스(.ts)를 브라우저에서 직접 불러 쓰므로 npm run dev 가 필요하다
 RUNS = 10                                   # T당 판 수
 TS = [float(x) for x in sys.argv[1:]] or [4.4, 5.4]
 
 SIM = """
 async ([T, runs, seedBase]) => {
-  const S = await import('./src/stage.js');
+  const S = await import('/src/engine/stage.ts');
 
   // 재현 가능한 난수 (시뮬레이션 자체도 같은 시드면 같은 결과가 나와야 한다)
   const mulberry32 = a => () => {

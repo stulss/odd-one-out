@@ -5,7 +5,7 @@ sys.stdout.reconfigure(encoding='utf-8')
 
 JS = """
 async () => {
-  const S = await import('./src/stage.js');
+  const S = await import('/src/engine/stage.ts');
   const out = [];
   for (const n of [5,10,15,20,25,30]) {
     const row = { n };
@@ -27,7 +27,7 @@ async () => {
 """
 with sync_playwright() as p:
     b=p.chromium.launch(); pg=b.new_context().new_page()
-    pg.goto("https://odd-one-out-nine.vercel.app/"); pg.wait_for_timeout(1200)
+    pg.goto("http://localhost:5173/"); pg.wait_for_timeout(1200)  # npm run dev 필요
     rows=pg.evaluate(JS); b.close()
 
 print(f"{'단계':>4} {'T=3.6':>7} {'T=4.4':>7} {'T=5.4':>7} {'모델 탐색시간':>12}  {'차이여유':>7}  축")
