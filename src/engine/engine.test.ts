@@ -4,7 +4,7 @@ import { AXIS_IDS, DIFF_AXES, isVisible, makeStage } from './stage';
 import * as Save from './save';
 import { evaluate } from './achieve';
 import { rankOf, tierOf, zoneOf } from './story';
-import { sanitizeName } from './heroData';
+import { sanitizeName, normalizeHero, HAIR_COLORS } from './heroData';
 
 describe('rng', () => {
   it('같은 시드는 같은 수열을 낸다', () => {
@@ -71,7 +71,7 @@ describe('save', () => {
   it('저장 후 다시 읽으면 같다', () => {
     const s = Save.load();
     s.best.stages = 12;
-    s.hero = { name: '민지', shape: 'hexagon', hue: 40, acc: 'hat' };
+    s.hero = { name: '민지', job: 'ninja', hairColor: 3, skin: 2, outfit: 4, acc: 'staff' };
     Save.save(s);
     const r = Save.load();
     expect(r.best.stages).toBe(12);
@@ -106,6 +106,16 @@ describe('story · achieve · hero', () => {
     const first = evaluate(ctx).map(a => a.id);
     expect(first).toEqual(expect.arrayContaining(['first', 's10', 'fast', 'clean']));
     expect(evaluate(ctx)).toHaveLength(0);
+  });
+
+  it('예전 버전/손상된 캐릭터 값은 현재 선택지 안으로 보정된다', () => {
+    const old = { name: '민지', shape: 'diamond', hue: 330, acc: 'antenna' } as never; // 진화 이전 버전의 저장 형태
+    expect(normalizeHero(old)).toMatchObject({ name: '민지', job: 'detective', acc: 'none' });
+    const bad = normalizeHero({ name: 'x', job: 'nope' as never, hairColor: 99, skin: -3, outfit: 1.7, acc: 'staff' });
+    expect(bad.job).toBe('detective');
+    expect(bad.hairColor).toBeLessThan(HAIR_COLORS.length);
+    expect(bad.skin).toBe(0);
+    expect(bad.acc).toBe('staff');
   });
 
   it('이름은 제어문자·꺾쇠를 걸러내고 8자로 자른다', () => {

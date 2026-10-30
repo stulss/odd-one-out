@@ -18,7 +18,7 @@ import {
   type Challenge, readChallenge, todayKeyKST, shareUrl, challengeLabel, freeChallenge, dailyChallenge,
 } from './daily';
 import { PROLOGUE, zoneOf, rankOf, tierOf, closingLine, fill, type DialogLine, type Zone } from './story';
-import { sanitizeName } from './heroData';
+import { normalizeHero } from './heroData';
 
 export const MODES: Record<Mode, { label: string; desc: string }> = {
   normal:   { label: '일반',      desc: '단계마다 제한 시간. 시간이 0이 되면 종료.' },
@@ -89,6 +89,7 @@ type Listener = () => void;
 
 export function createEngine() {
   let store = Save.load();
+  store.hero = normalizeHero(store.hero); // 예전 버전의 캐릭터 값이 남아 있어도 현재 선택지 안으로 맞춘다
   let challenge = readChallenge();
   let screen: Screen = 'TITLE';
   let mood: Mood = 'idle';
@@ -376,7 +377,8 @@ export function createEngine() {
   function openCreator() { show('HERO'); emit(); }
 
   function confirmHero(h: Hero) {
-    const hero: Hero = { ...h, name: sanitizeName(h.name) || '감별사' };
+    const hero: Hero = normalizeHero(h);
+    if (!hero.name) hero.name = '감별사';
     store.hero = hero;
     store = Save.save(store);
     if (!store.prologue) {

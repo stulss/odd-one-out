@@ -1,9 +1,13 @@
-// 캐릭터 만들기 — 이름 · 몸 모양 · 색 · 액세서리. 진화 미리보기는 저장하지 않는 화면 전용 상태다.
+// 캐릭터 만들기 — 이름 · 복장 · 머리색 · 피부 · 옷색 · 소품. 진화 미리보기는 저장하지 않는 화면 전용 상태다.
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { useEngine, useSnapshot } from '../hooks/useEngine';
-import { HERO_ACCS, HERO_HUES, HERO_SHAPES, NAME_MAX, TIER_LABELS } from '../engine/heroData';
+import {
+  HAIR_COLORS, JOBS, HERO_ACCS, NAME_MAX, OUTFIT_HUES, SKINS, TIER_LABELS, randomHero,
+} from '../engine/heroData';
 import type { Hero as HeroData } from '../engine/save';
 import { Hero } from './Hero';
+
+type Idx = 'hairColor' | 'skin' | 'outfit';
 
 export function HeroScreen() {
   const engine = useEngine();
@@ -17,6 +21,15 @@ export function HeroScreen() {
   useEffect(() => { nameRef.current?.focus({ preventScroll: true }); }, []);
 
   const set = <K extends keyof HeroData>(k: K, v: HeroData[K]) => setDraft(d => ({ ...d, [k]: v }));
+
+  const swatches = (key: Idx, label: string, colors: string[]) => (
+    <div className="pick" id={'pick-' + key} role="group" aria-label={label}>
+      {colors.map((c, i) => (
+        <button key={c + i} type="button" className="chip swatch" aria-pressed={draft[key] === i}
+          aria-label={`${label} ${i + 1}`} style={{ '--c': c } as CSSProperties} onClick={() => set(key, i)} />
+      ))}
+    </div>
+  );
 
   return (
     <section className="overlay" id="screenHero">
@@ -33,25 +46,27 @@ export function HeroScreen() {
         onChange={e => set('name', e.target.value)}
         onKeyDown={e => { if (e.key === 'Enter') engine.confirmHero(draft); }}
       />
-      <div className="pick" id="pickShape" role="group" aria-label="몸 모양">
-        {HERO_SHAPES.map(([v, label]) => (
-          <button key={v} type="button" className="chip" aria-pressed={draft.shape === v}
-            aria-label={`몸 모양 ${label}`} onClick={() => set('shape', v)}>{label}</button>
+      <button className="linkbtn" id="btnRandomHero" type="button"
+        onClick={() => setDraft(d => randomHero(d.name))}>🎲 무작위로 만들기</button>
+
+      <div className="hint">복장 — 모자와 옷의 모양이 통째로 바뀝니다</div>
+      <div className="pick" id="pickJob" role="group" aria-label="복장">
+        {JOBS.map(([v, label]) => (
+          <button key={v} type="button" className="chip" aria-pressed={draft.job === v}
+            aria-label={`복장 ${label}`} onClick={() => set('job', v)}>{label}</button>
         ))}
       </div>
-      <div className="pick" id="pickHue" role="group" aria-label="색">
-        {HERO_HUES.map(h => (
-          <button key={h} type="button" className="chip swatch" aria-pressed={draft.hue === h}
-            aria-label={`색 ${h}`} style={{ '--hh': h } as CSSProperties} onClick={() => set('hue', h)} />
-        ))}
-      </div>
-      <div className="pick" id="pickAcc" role="group" aria-label="액세서리">
+      {swatches('hairColor', '머리색', HAIR_COLORS)}
+      {swatches('skin', '피부색', SKINS)}
+      {swatches('outfit', '옷 색', OUTFIT_HUES.map(h => `hsl(${h} 52% 46%)`))}
+      <div className="pick" id="pickAcc" role="group" aria-label="소품">
         {HERO_ACCS.map(([v, label]) => (
           <button key={v} type="button" className="chip" aria-pressed={draft.acc === v}
-            aria-label={`액세서리 ${label}`} onClick={() => set('acc', v)}>{label}</button>
+            aria-label={`소품 ${label}`} onClick={() => set('acc', v)}>{label}</button>
         ))}
       </div>
-      <div className="hint">진화 미리보기 — 등급이 오르면 이렇게 변합니다</div>
+
+      <div className="hint">진화 미리보기 — 등급이 오르면 옷차림이 이렇게 바뀝니다</div>
       <div className="pick" id="pickTier" role="group" aria-label="진화 미리보기">
         {TIER_LABELS.map((label, i) => (
           <button key={label} type="button" className="chip" aria-pressed={tier === i}

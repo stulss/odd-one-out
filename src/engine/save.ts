@@ -4,13 +4,16 @@
 const KEY = 'ooo.v1';
 
 export type Mode = 'normal' | 'practice' | 'blitz';
-export type HeroShape = 'circle' | 'square' | 'diamond' | 'hexagon';
-export type HeroAcc = 'none' | 'antenna' | 'hat' | 'lens';
+export type Job = 'detective' | 'mage' | 'ninja' | 'cleric' | 'nomad' | 'rogue';
+export type HeroAcc = 'none' | 'lens' | 'staff' | 'flower';
 
+/** 캐릭터 — 색은 heroData.ts의 팔레트 번호로 저장한다 (색 값 자체를 저장하지 않는다) */
 export interface Hero {
   name: string;
-  shape: HeroShape;
-  hue: number;
+  job: Job;
+  hairColor: number;
+  skin: number;
+  outfit: number;
   acc: HeroAcc;
 }
 
@@ -36,7 +39,7 @@ export const DEFAULT: Store = {
   stats: { played: 0, totalStages: 0, totalTimeMs: 0 },
   streak: { count: 0, lastPlayDate: null },
   settings: { sound: true, reducedMotion: false, tuneT: 4.4, colorSafe: false, highContrast: false },
-  hero: { name: '', shape: 'circle', hue: 160, acc: 'none' },
+  hero: { name: '', job: 'detective', hairColor: 1, skin: 1, outfit: 0, acc: 'none' },
   prologue: false,
   mode: 'normal',
   practiceAxis: '',
