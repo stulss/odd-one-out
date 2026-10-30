@@ -4,7 +4,7 @@
 const KEY = 'ooo.v1';
 
 export type Mode = 'case' | 'normal' | 'practice' | 'blitz';
-// 복장은 세계관(이상 감별국)에 맞춘 7종: 수습 제복 · 현장 수사관 · 공장 기술자 · 위장 수사관 · 도서관 감식관 · 야시장 정보원 · 수석 정복
+// 복장은 세계관(오리지널 감별국)에 맞춘 7종: 수습 제복 · 현장 수사관 · 공장 기술자 · 위장 수사관 · 도서관 감식관 · 야시장 정보원 · 수석 정복
 export type Job = 'rookie' | 'field' | 'engineer' | 'disguise' | 'archivist' | 'street' | 'chief';
 export type HeroAcc = 'none' | 'lens' | 'torch' | 'notebook';
 

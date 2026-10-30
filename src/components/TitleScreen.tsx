@@ -9,6 +9,7 @@ import { heroTier } from '../engine/campaign';
 import { attachTilt } from '../engine/fx';
 import { Hero } from './Hero';
 import { Logo } from './Logo';
+import { GAME_TAGLINE, GAME_TITLE } from '../engine/brand';
 import { Book, Coin } from './Icons';
 
 export function TitleScreen({ onOpenSettings }: { onOpenSettings: () => void }) {
@@ -39,8 +40,9 @@ export function TitleScreen({ onOpenSettings }: { onOpenSettings: () => void }) 
         </div>
       </div>
       <div id="heroLine">{store.hero.name || '감별사'}<small>{RANKS[heroTier(store)].name}</small></div>
-      <div className="brand"><Logo /><h1>딱 하나 이상함</h1></div>
+      <div className="brand"><Logo /><h1>{GAME_TITLE}</h1></div>
       <div className="sub" id="challengeLabel">{challengeLabel(challenge)}</div>
+      <div className="tagline">{GAME_TAGLINE}</div>
       {challenge.rival && <div id="rivalBanner">친구의 기록 {challenge.rival}단계 — 넘어보세요</div>}
 
       {challenge.type === 'free' && (

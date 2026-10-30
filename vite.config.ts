@@ -13,9 +13,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['apple-touch-icon.png', 'og-image.png'],
       manifest: {
-        name: '딱 하나 이상함',
-        short_name: '딱하나',
-        description: '여러 개 중 딱 하나만 다릅니다. 제한 시간 안에 찾으세요.',
+        name: '오리지널 감별국',
+        short_name: '감별국',
+        description: '복제품 속에서 진짜를 찾아라! 똑같은 물건들 사이에서 딱 하나 다른 것을 찾아내는 감별사 게임.',
         lang: 'ko',
         start_url: './',
         scope: './',

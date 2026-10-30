@@ -58,9 +58,9 @@ for r in range(rows):
             og.paste(layer, (x - 10, y - 10), layer)
         else:
             d.rounded_rectangle([x, y, x + cell, y + cell], radius=14, fill=BLUE)
-d.text((90, 190), '딱 하나', font=font(120), fill=INK)
-d.text((90, 330), '이상함', font=font(120), fill=MINT)
-d.text((94, 485), '여러 개 중 딱 하나만 다릅니다. 찾을 수 있나요?', font=font(34), fill=DIM)
+d.text((90, 190), '오리지널', font=font(112), fill=INK)
+d.text((90, 330), '감별국', font=font(120), fill=MINT)
+d.text((94, 485), '복제품 속에서 진짜를 찾아라', font=font(34), fill=DIM)
 og.save('public/og-image.png', optimize=True)
 for f in sorted(os.listdir(OUT)):
     print(f, os.path.getsize(os.path.join(OUT, f)))

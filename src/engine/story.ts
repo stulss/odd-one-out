@@ -1,6 +1,6 @@
 // 시나리오 — 순수 데이터와 조회 함수만 둔다. DOM·저장소를 건드리지 않는다.
 // 세계관: 도시의 모든 것이 복제되고 있다. 복제품에는 반드시 '딱 하나' 다른 점이 남는다.
-// 플레이어는 이상 감별국의 신입 감별사, 안내 로봇 '렌즈'가 길을 알려준다.
+// 플레이어는 오리지널 감별국의 신입 감별사, 안내 로봇 '렌즈'가 길을 알려준다.
 // 대사의 {n}은 캐릭터 이름으로 바뀐다.
 
 export const ZONE_LEN = 5; // 5단계마다 구역이 바뀐다
@@ -14,7 +14,7 @@ export type Speaker = 'npc' | 'hero' | 'sys' | 'boss';
 export interface DialogLine { who: Speaker; text: string; tier?: number; hero?: Hero }
 
 export const PROLOGUE: DialogLine[] = [
-  { who: 'npc', text: "어서 와요, {n}. 저는 이상 감별국 안내 로봇 '렌즈'예요." },
+  { who: 'npc', text: "어서 와요, {n}. 저는 오리지널 감별국 안내 로봇 '렌즈'예요." },
   { who: 'npc', text: '요즘 도시 곳곳에서 물건이 끝없이 복제되고 있어요. 원본과 똑같이 생겼죠.' },
   { who: 'npc', text: '하지만 복제품에는 반드시 딱 하나, 어딘가 다른 곳이 남아요. 그걸 찾는 게 감별사의 일!' },
   { who: 'hero', text: '…좋아요. 눈 하나는 자신 있어요.' },

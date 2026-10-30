@@ -2,6 +2,7 @@
 // 카드에 '정답 없는 마지막 격자'를 넣어, 보는 사람이 카드 자체를 풀게 만든다.
 import { EDGE_BASE, type Stage } from './stage';
 import { OBJECTS, toneColor } from './objects';
+import { GAME_TITLE } from './brand';
 
 const W = 1080, H = 1350;
 
@@ -32,7 +33,7 @@ export function drawCard(canvas: HTMLCanvasElement, d: CardData): HTMLCanvasElem
 
   // 상단 워드마크
   g.fillStyle = '#5EE6C5'; g.font = font(46);
-  g.fillText('딱 하나 이상함', W / 2, 150);
+  g.fillText(GAME_TITLE, W / 2, 150);
   if (who) { g.fillStyle = '#E8EDF4'; g.font = font(36, '600'); g.fillText(who, W / 2, 210); }
 
   // 거대 숫자

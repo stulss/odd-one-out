@@ -21,6 +21,7 @@ import { PROLOGUE, zoneOf, rankOf, tierOf, closingLine, fill, type DialogLine } 
 import { JOBS, normalizeHero } from './heroData';
 import { bossOf, type BossDef } from './bosses';
 import { Music } from './music';
+import { GAME_TITLE } from './brand';
 import { MODS, rollModifier, type ModId } from './modifiers';
 import * as Missions from './missions';
 import type { Mission } from './missions';
@@ -481,7 +482,7 @@ export function createEngine() {
     const stages = run.n - 1;
     const normal = run.mode === 'normal';
     const url = shareUrl(challenge, normal ? stages : 0); // 다른 모드 점수가 '친구의 기록'으로 비교되면 안 된다
-    const text = `딱 하나 이상함${normal ? '' : ` [${MODES[run.mode].label}]`} — ${stages}단계\n${challengeLabel(challenge)}, 넘어볼래?`;
+    const text = `${GAME_TITLE}${normal ? '' : ` [${MODES[run.mode].label}]`} — ${stages}단계\n${challengeLabel(challenge)}, 넘어볼래?`;
     fallback = { visible: false, text: text + '\n' + url, url };
     emit();
     const r = await Share.share({
