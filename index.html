@@ -253,6 +253,8 @@ pre#logSummary{ font:12px/1.7 ui-monospace,Menlo,Consolas,monospace; color:var(-
     <div class="pick" id="pickShape" role="group" aria-label="몸 모양"></div>
     <div class="pick" id="pickHue" role="group" aria-label="색"></div>
     <div class="pick" id="pickAcc" role="group" aria-label="액세서리"></div>
+    <div class="hint">진화 미리보기 — 등급이 오르면 이렇게 변합니다</div>
+    <div class="pick" id="pickTier" role="group" aria-label="진화 미리보기"></div>
     <button class="btn" id="btnHeroOk" type="button">등록 완료</button>
     <button class="btn ghost" id="btnHeroCancel" type="button" hidden>취소</button>
   </section>
@@ -264,7 +266,7 @@ pre#logSummary{ font:12px/1.7 ui-monospace,Menlo,Consolas,monospace; color:var(-
       <div id="dlgAvatar"></div>
       <div class="bubble"><div id="dlgWho"></div><p id="dlgText" aria-live="polite"></p></div>
     </div>
-    <button class="btn" id="btnStoryNext" type="button">다음 ▶</button>
+    <div class="hint" id="skipHint">화면을 누르면 넘어갑니다</div>
   </section>
 
   <!-- ── PAUSE ── -->

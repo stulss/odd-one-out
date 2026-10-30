@@ -12,7 +12,7 @@ import * as Audio from './audio.js';
 import * as Share from './share.js';
 import { drawCard, toBlob } from './card.js';
 import { readChallenge, todayKeyKST, shareUrl, challengeLabel, freeKey } from './daily.js';
-import { PROLOGUE, zoneOf, rankOf, closingLine, fill } from './story.js';
+import { PROLOGUE, zoneOf, rankOf, tierOf, closingLine, fill } from './story.js';
 import { mountHero, setMood, createCreator, sanitizeName } from './hero.js';
 import { createDialog } from './dialog.js';
 import { createFx } from './fx.js';
@@ -63,13 +63,13 @@ export function createGame(){
   fx.attachTilt($('screenResult'), $('resultTilt'), 10);
   const creator = createCreator({
     preview: $('heroPreview'), nameInput: el.heroName,
-    pickShape: $('pickShape'), pickHue: $('pickHue'), pickAcc: $('pickAcc'),
+    pickShape: $("pickShape"), pickHue: $("pickHue"), pickAcc: $("pickAcc"), pickTier: $("pickTier"),
   });
   const playDialog = createDialog({
-    zoneCard: $('zoneCard'), zoneK: $('zoneK'), zoneN: $('zoneN'),
-    avatar: $('dlgAvatar'), who: $('dlgWho'), text: $('dlgText'), next: $('btnStoryNext'),
+    root: $('screenStory'), zoneCard: $('zoneCard'), zoneK: $('zoneK'), zoneN: $('zoneN'),
+    avatar: $('dlgAvatar'), who: $('dlgWho'), text: $('dlgText'),
   });
-  let miniHero = null, moodTimer = 0;
+  let miniHero = null, miniTier = -1, moodTimer = 0;
 
   const renderer = createRenderer(el.board, el.stageArea, null);
 
@@ -115,7 +115,17 @@ export function createGame(){
     const z = zoneOf(run.n);
     el.zoneName.textContent = `ZONE ${z.idx + 1} · ${z.name}`;
     setTheme(z.hue);
+    syncMini(false);
     updateStatus();
+  }
+
+  // HUD의 작은 캐릭터는 지금 판의 진행도에 맞는 모습이다. 등급이 오르면 진화 연출과 함께 바뀐다.
+  function syncMini(force){
+    const t = tierOf(run.n - 1);
+    if (!force && t === miniTier) return;
+    const evolve = !force && miniTier >= 0 && t > miniTier;
+    miniTier = t;
+    miniHero = mountHero(el.heroMini, store.hero, 'idle', t, evolve);
   }
 
   const setTheme = hue => document.documentElement.style.setProperty('--zh', hue);
@@ -137,8 +147,8 @@ export function createGame(){
 
   function refreshHero(){
     const h = store.hero;
-    miniHero = mountHero(el.heroMini, h);
-    mountHero(el.titleHero, h, 'happy');
+    syncMini(true);
+    mountHero(el.titleHero, h, 'happy', tierOf(store.best.stages));
     const rank = rankOf(store.best.stages);
     el.heroLine.replaceChildren(document.createTextNode(h.name || '감별사'));
     const small = document.createElement('small'); small.textContent = rank;
@@ -196,7 +206,10 @@ export function createGame(){
       fx.pulse(`hsl(${z.hue} 80% 55%)`, .6);
       show('STORY');
       const lines = z.lines.map(t => ({ who: 'npc', text: fill(t, store.hero.name) }));
-      playDialog(lines, { hero: store.hero, zone: z }, () => { show('PLAY'); startClock(s); });
+      const tNow = tierOf(run.n - 1);
+      if (tNow > tierOf(run.n - 2))                      // 이 구역에 들어오며 등급이 올랐다
+        lines.push({ who: 'sys', tier: tNow, text: `${store.hero.name}, '${rankOf(run.n - 1)}'(으)로 승급했다!` });
+      playDialog(lines, { hero: store.hero, zone: z, hold: 550 }, () => { show('PLAY'); startClock(s); });
       return;
     }
     startClock(s);
@@ -279,6 +292,7 @@ export function createGame(){
     const best = store.best;
     const blitz = run.mode === 'blitz';
     const isBest = blitz ? stages > store.bestBlitz : stages > best.stages;
+    const prevTier = tierOf(best.stages);     // 갱신 전 등급 (승급 여부 판단)
 
     const rs = run.reactions;
     const bestReaction = rs.length ? Math.min(...rs) : null;
@@ -309,9 +323,11 @@ export function createGame(){
     refreshLogPanel();
     renderAch();
 
-    el.resultRank.textContent = `${store.hero.name} · ${rankOf(stages)}`;
+    const tier = tierOf(stages);
+    const promoted = !blitz && tier > prevTier;
+    el.resultRank.textContent = `${store.hero.name} · ${rankOf(stages)}` + (promoted ? '  ▲ 승급!' : '');
     el.resultNpc.textContent = '렌즈: “' + closingLine(stages, isBest, reason) + '”';
-    mountHero(el.resultHero, store.hero, isBest ? 'happy' : 'dizzy');
+    mountHero(el.resultHero, store.hero, isBest ? 'happy' : 'dizzy', tier, promoted);
     el.resultAch.textContent = unlocked.length ? '🏆 업적 달성: ' + unlocked.map(a => a.name).join(', ') : '';
     el.resultTitle.textContent = blitz ? '종료 — 30초 도전'
       : reason === 'wrong_streak' ? '실패 — 오답 누적' : '실패 — 시간 초과';
@@ -419,7 +435,7 @@ export function createGame(){
     if (!store.prologue){
       store.prologue = true; store = Save.save(store);
       show('STORY');
-      playDialog(PROLOGUE.map(l => ({ ...l, text: fill(l.text, h.name) })), { hero: h, zone: null }, () => show('TITLE'));
+      playDialog(PROLOGUE.map(l => ({ ...l, text: fill(l.text, h.name) })), { hero: h, zone: null, hold: 900 }, () => show('TITLE'));
     } else show('TITLE');
   }
 

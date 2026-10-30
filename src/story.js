@@ -60,6 +60,13 @@ export function zoneOf(n){
   };
 }
 
+/** 등급 단계 0~5 — 캐릭터 진화 단계와 같다 */
+export function tierOf(stages){
+  let t = 0;
+  RANKS.forEach((x, i) => { if (stages >= x.min) t = i; });
+  return t;
+}
+
 export function rankOf(stages){
   let r = RANKS[0];
   for (const x of RANKS) if (stages >= x.min) r = x;

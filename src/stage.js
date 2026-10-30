@@ -28,6 +28,23 @@ export const DIFF_AXES = {
 };
 const AXIS_IDS = Object.keys(DIFF_AXES);
 
+// ── 눈에 안 보이는 조합 제거 (플레이 피드백: "다른 점이 구분이 안 간다") ─────────────
+// 모양과 축이 만나면 차이가 그려지지 않는 경우가 있었다 — 정답이 있는데 화면에는 없는 판이다.
+//  · 원 + 회전      : 원은 돌려도 똑같다
+//  · 마름모/육각 + 모서리·두께 : clip-path가 모서리와 안쪽 테두리를 잘라내서 안 보인다
+// 해당 조합이면 모양만 사각으로 바꾼다. 난수는 그대로 소비하므로 나머지 값(축·크기·정답 위치)은 변하지 않는다.
+const INVISIBLE = {
+  circle:  ['rotate'],
+  diamond: ['radius', 'inset'],
+  hexagon: ['radius', 'inset'],
+};
+export const isVisible = (shape, axis) => !(INVISIBLE[shape] || []).includes(axis);
+
+// 초반 워밍업: 1~5단계는 차이를 크게 (1.5배 → 1.1배). 이 뒤로는 기존 곡선 그대로.
+const warmup = n => n <= 5 ? 1 + (6 - n) * 0.1 : 1;
+// 워밍업으로 키운 값이 화면을 깨뜨리지 않도록 축별 상한
+const CAP = { size:26, offset:12, radius:40, sat:90, opacity:60 };
+
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 const lerp  = (a, b, t) => a + (b - a) * t;
 
@@ -62,6 +79,7 @@ export function makeStage(rootKey, n, tuneT, prev, forceAxis){
 
   // delta: easy → hard 로 좁혀지되 ±15% 흔들어 패턴 학습을 막는다
   let delta = lerp(spec.easy, spec.hard, dEase) * (0.85 + rnd() * 0.3);
+  delta = Math.min(delta * warmup(n), CAP[axis] ?? spec.easy * 1.6);
   delta = Math.max(delta, spec.min);                // 공정성: 지각 임계값 아래로 내려가지 않는다
 
   // 제한 시간은 고정 계수를 쓴다. 손잡이는 위의 차이 곡선 하나뿐이다.
@@ -76,6 +94,7 @@ export function makeStage(rootKey, n, tuneT, prev, forceAxis){
     shape: SHAPES[Math.floor(rnd() * SHAPES.length)],
     hue: Math.floor(rnd() * 360),
   };
+  if (!isVisible(stage.shape, axis)) stage.shape = 'square';
 
   return validate(stage) ? stage : relax(stage);
 }
