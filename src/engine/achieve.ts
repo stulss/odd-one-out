@@ -1,5 +1,6 @@
 // 업적 — 순수 함수. 저장은 store.ach 문자열(쉼표로 이은 id)에 한다.
 import type { Mode, Store } from './save';
+import { CASES, clearedCount, codexFound, starsOf, threeStarCount, TOTAL_CASES } from './campaign';
 
 export interface AchContext {
   store: Store;
@@ -29,6 +30,11 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: 'clean',   icon: '✓',  name: '무결점',        desc: '오답 없이 10단계 이상',      test: c => c.mode === 'normal' && c.wrongs === 0 && c.stages >= 10 },
   { id: 'daily',   icon: '📅', name: '오늘의 도전자', desc: '오늘의 문제를 완료',         test: c => c.challengeType === 'daily' },
   { id: 'streak3', icon: '🗓', name: '3일 연속',      desc: '3일 연속 플레이',            test: c => c.store.streak.count >= 3 },
+  { id: 'case1',   icon: '🗂', name: '첫 사건 해결',  desc: '사건 1개를 클리어',          test: c => clearedCount(c.store) >= 1 },
+  { id: 'zone1',   icon: '🏅', name: '수습 졸업',     desc: '수습 훈련실(사건 3) 클리어',  test: c => starsOf(c.store, 2) >= 1 },
+  { id: 'star3',   icon: '🌟', name: '완벽한 수사',   desc: '사건 하나를 별 3개로 클리어', test: c => threeStarCount(c.store) >= 1 },
+  { id: 'codex8',  icon: '📖', name: '도감 완성',     desc: '물건 8종을 모두 발견',        test: c => codexFound(c.store) >= 8 },
+  { id: 'all',     icon: '🏆', name: '원본을 찾았다', desc: `사건 ${TOTAL_CASES}개를 모두 클리어`, test: c => clearedCount(c.store) >= CASES.length },
   { id: 'blitz15', icon: '⏱', name: '30초 15단계',   desc: '30초 도전에서 15단계',       test: c => c.mode === 'blitz' && c.stages >= 15 },
 ];
 

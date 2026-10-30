@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { decodeSeed, encodeSeed, stageRng } from './rng';
-import { AXIS_IDS, DIFF_AXES, isVisible, makeStage } from './stage';
+import { AXIS_IDS, DIFF_AXES, makeStage } from './stage';
+import { OBJECTS, OBJECT_COUNT } from './objects';
 import * as Save from './save';
 import { evaluate } from './achieve';
 import { rankOf, tierOf, zoneOf } from './story';
@@ -27,11 +28,12 @@ describe('stage', () => {
     expect(makeStage('c:T', 7, 4.4, null)).toEqual(makeStage('c:T', 7, 4.4, null));
   });
 
-  it('화면에 안 그려지는 모양×차이 조합이 없다 (1~40단계 × 시드 200개)', () => {
+  it('모든 판이 유효하다: 물건 종류·지각 임계값·정답 위치 (1~40단계 × 시드 200개)', () => {
     for (let k = 0; k < 200; k++) {
       for (let n = 1; n <= 40; n++) {
         const s = makeStage('c:V' + k, n, 4.4, null);
-        expect(isVisible(s.shape, s.axis)).toBe(true);
+        expect(s.kind).toBeGreaterThanOrEqual(0);
+        expect(s.kind).toBeLessThan(OBJECT_COUNT);
         expect(s.delta).toBeGreaterThanOrEqual(DIFF_AXES[s.axis].min);
         expect(s.answer).toBeGreaterThanOrEqual(0);
         expect(s.answer).toBeLessThan(s.total);
@@ -53,6 +55,17 @@ describe('stage', () => {
     expect(forced.axis).toBe('rotate');
     expect(forced.answer).toBe(free.answer);
     expect(AXIS_IDS).toContain(forced.axis);
+  });
+});
+
+describe('objects', () => {
+  it('물건 8종은 모두 이름과 그림 레이어를 가진다', () => {
+    expect(OBJECTS).toHaveLength(OBJECT_COUNT);
+    for (const o of OBJECTS) {
+      expect(o.name.length).toBeGreaterThan(0);
+      expect(o.layers.length).toBeGreaterThan(1);
+      for (const l of o.layers) expect(l.d).toMatch(/^M[\d. -]+/);
+    }
   });
 });
 

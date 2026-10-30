@@ -1,6 +1,7 @@
 // 결과 카드 — Canvas로 런타임 생성 (이미지 파일 0개).
 // 카드에 '정답 없는 마지막 격자'를 넣어, 보는 사람이 카드 자체를 풀게 만든다.
-import type { Stage } from './stage';
+import { EDGE_BASE, type Stage } from './stage';
+import { OBJECTS, toneColor } from './objects';
 
 const W = 1080, H = 1350;
 
@@ -72,6 +73,7 @@ function drawGrid(g: CanvasRenderingContext2D, stage: Stage, cx: number, top: nu
   g.strokeStyle = 'rgba(94,230,197,.18)'; g.lineWidth = 2;
   g.strokeRect(x0 - 24, y0 - 24, gw + 48, gh + 48);
 
+  const art = OBJECTS[stage.kind % OBJECTS.length];
   for (let i = 0; i < stage.total; i++) {
     const r = Math.floor(i / stage.cols), c = i % stage.cols;
     const x = x0 + c * (cell + gap), y = y0 + r * (cell + gap);
@@ -79,9 +81,17 @@ function drawGrid(g: CanvasRenderingContext2D, stage: Stage, cx: number, top: nu
     g.save();
     g.translate(x + cell / 2, y + cell / 2);
     applyDiff(g, stage, odd);
-    g.fillStyle = fillFor(stage, odd);
-    round(g, -cell / 2, -cell / 2, cell, cell, cell * 0.18);
-    g.fill();
+    g.scale(cell / 100, cell / 100); // 물건은 100×100 좌표계로 정의돼 있다
+    g.translate(-50, -50);
+    g.lineJoin = 'round';
+    g.strokeStyle = 'rgba(20,24,34,.85)';
+    g.lineWidth = odd && stage.axis === 'edge' ? EDGE_BASE + stage.delta : EDGE_BASE;
+    for (const l of art.layers) {
+      const p = new Path2D(l.d);
+      g.fillStyle = toneColor(l.tone, fillHue(stage, odd));
+      g.fill(p, l.eo ? 'evenodd' : 'nonzero');
+      g.stroke(p);
+    }
     g.restore();
   }
   g.restore();
@@ -96,28 +106,12 @@ function applyDiff(g: CanvasRenderingContext2D, stage: Stage, odd: boolean) {
   else if (stage.axis === 'skew') g.transform(1, 0, Math.tan(d * Math.PI / 180), 1, 0, 0);
   else if (stage.axis === 'offset') g.translate(d, 0);
   else if (stage.axis === 'opacity') g.globalAlpha = 1 - d / 100;
+  else if (stage.axis === 'light') g.filter = `brightness(${100 + d}%)`;
+  else if (stage.axis === 'sat') g.filter = `saturate(${100 - d}%)`;
+  else if (stage.axis === 'blur') g.filter = `blur(${d}px)`;
 }
 
-function fillFor(stage: Stage, odd: boolean): string {
-  const h = stage.hue;
-  if (!odd) return `hsl(${h} 62% 58%)`;
-  const d = stage.delta;
-  if (stage.axis === 'hue') return `hsl(${(h + d) % 360} 62% 58%)`;
-  if (stage.axis === 'light') return `hsl(${h} 62% ${Math.min(92, 58 + d * 0.5)}%)`;
-  if (stage.axis === 'sat') return `hsl(${h} ${Math.max(5, 62 - d)}% 58%)`;
-  return `hsl(${h} 62% 58%)`;
-}
-
-function round(g: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
-  g.beginPath();
-  if (g.roundRect) g.roundRect(x, y, w, h, r);
-  else {
-    g.moveTo(x + r, y);
-    g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r);
-    g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r);
-    g.closePath();
-  }
-}
+const fillHue = (stage: Stage, odd: boolean) => (odd && stage.axis === 'hue' ? (stage.hue + stage.delta) % 360 : stage.hue);
 
 const fmt = (v: number | null) => (v == null ? '-' : v.toFixed(2));
 

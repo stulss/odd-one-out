@@ -5,6 +5,7 @@ import {
   HAIR_COLORS, JOBS, HERO_ACCS, NAME_MAX, OUTFIT_HUES, SKINS, TIER_LABELS, randomHero,
 } from '../engine/heroData';
 import type { Hero as HeroData } from '../engine/save';
+import { isUnlocked, priceOf, type UnlockKind } from '../engine/campaign';
 import { Hero } from './Hero';
 
 type Idx = 'hairColor' | 'skin' | 'outfit';
@@ -22,12 +23,29 @@ export function HeroScreen() {
 
   const set = <K extends keyof HeroData>(k: K, v: HeroData[K]) => setDraft(d => ({ ...d, [k]: v }));
 
+  // 잠긴 항목을 누르면: 코인으로 살 수 있으면 사고(바로 선택), 아니면 안내 메시지
+  const choose = <K extends keyof HeroData>(kind: UnlockKind | null, key: K, value: HeroData[K], unlockKey: string | number) => {
+    if (kind && !engine.buyUnlock(kind, unlockKey)) return;
+    set(key, value);
+  };
+  const lockTag = (kind: UnlockKind, key: string | number) => {
+    if (isUnlocked(store, kind, key)) return null;
+    const p = priceOf(kind, key);
+    return <span className="lockTag">{p == null ? '🔒' : `🔒${p}`}</span>;
+  };
+
   const swatches = (key: Idx, label: string, colors: string[]) => (
     <div className="pick" id={'pick-' + key} role="group" aria-label={label}>
-      {colors.map((c, i) => (
-        <button key={c + i} type="button" className="chip swatch" aria-pressed={draft[key] === i}
-          aria-label={`${label} ${i + 1}`} style={{ '--c': c } as CSSProperties} onClick={() => set(key, i)} />
-      ))}
+      {colors.map((c, i) => {
+        const locked = key === 'outfit' && !isUnlocked(store, 'outfit', i);
+        return (
+          <button key={c + i} type="button" className={'chip swatch' + (locked ? ' locked' : '')} aria-pressed={draft[key] === i}
+            aria-label={`${label} ${i + 1}${locked ? ' (잠김)' : ''}`} style={{ '--c': c } as CSSProperties}
+            onClick={() => choose(key === 'outfit' ? 'outfit' : null, key, i, i)}>
+            {locked && <span className="lockTag">🔒</span>}
+          </button>
+        );
+      })}
     </div>
   );
 
@@ -36,6 +54,7 @@ export function HeroScreen() {
       <h1>감별사 등록</h1>
       <div className="sub">이름과 모습을 정해 주세요</div>
       <div className="pad"><div className="tilt">
+        <i className="platform" aria-hidden="true" />
         <div id="heroPreview">
           <Hero key={evolveKey} hero={draft} tier={tier} mood="happy" evolve={evolveKey > 0} />
         </div>
@@ -47,13 +66,13 @@ export function HeroScreen() {
         onKeyDown={e => { if (e.key === 'Enter') engine.confirmHero(draft); }}
       />
       <button className="linkbtn" id="btnRandomHero" type="button"
-        onClick={() => setDraft(d => randomHero(d.name))}>🎲 무작위로 만들기</button>
+        onClick={() => setDraft(d => engine.allowedHero(randomHero(d.name)))}>🎲 무작위로 만들기</button>
 
-      <div className="hint">복장 — 모자와 옷의 모양이 통째로 바뀝니다</div>
+      <div className="hint">복장 — 구역 마지막 사건을 해결하면 새 복장이 열려요 · 🪙 {store.coins}</div>
       <div className="pick" id="pickJob" role="group" aria-label="복장">
         {JOBS.map(([v, label]) => (
-          <button key={v} type="button" className="chip" aria-pressed={draft.job === v}
-            aria-label={`복장 ${label}`} onClick={() => set('job', v)}>{label}</button>
+          <button key={v} type="button" className={'chip' + (isUnlocked(store, 'job', v) ? '' : ' locked')} aria-pressed={draft.job === v}
+            aria-label={`복장 ${label}`} onClick={() => choose('job', 'job', v, v)}>{lockTag('job', v)}{label}</button>
         ))}
       </div>
       {swatches('hairColor', '머리색', HAIR_COLORS)}
@@ -61,8 +80,8 @@ export function HeroScreen() {
       {swatches('outfit', '옷 색', OUTFIT_HUES.map(h => `hsl(${h} 52% 46%)`))}
       <div className="pick" id="pickAcc" role="group" aria-label="소품">
         {HERO_ACCS.map(([v, label]) => (
-          <button key={v} type="button" className="chip" aria-pressed={draft.acc === v}
-            aria-label={`소품 ${label}`} onClick={() => set('acc', v)}>{label}</button>
+          <button key={v} type="button" className={'chip' + (isUnlocked(store, 'acc', v) ? '' : ' locked')} aria-pressed={draft.acc === v}
+            aria-label={`소품 ${label}`} onClick={() => choose('acc', 'acc', v, v)}>{lockTag('acc', v)}{label}</button>
         ))}
       </div>
 

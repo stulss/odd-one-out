@@ -82,11 +82,11 @@ export function StoryScreen({ req, onDone }: { req: DialogRequest; onDone: () =>
 
   return (
     <section className={'overlay' + (out ? ' out' : '')} id="screenStory" onPointerDown={skip}>
-      {req.zone && (
+      {req.card && (
         <div id="zoneCard" className="flip">
           <div className="zc">
-            <div className="zc-k" id="zoneK">ZONE {req.zone.idx + 1}</div>
-            <div className="zc-n" id="zoneN">{req.zone.name}</div>
+            <div className="zc-k" id="zoneK">{req.card.k}</div>
+            <div className="zc-n" id="zoneN">{req.card.n}</div>
           </div>
         </div>
       )}

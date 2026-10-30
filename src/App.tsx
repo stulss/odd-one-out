@@ -1,17 +1,20 @@
 import { useEffect, useRef, useState } from 'react';
 import { useEngine, useSnapshot } from './hooks/useEngine';
-import { createFx } from './engine/fx';
+import { attachTilt, createFx } from './engine/fx';
 import type { Screen } from './engine/game';
 import { Hud } from './components/Hud';
+import { BgScene } from './components/BgScene';
 import { Board } from './components/Board';
 import { TitleScreen } from './components/TitleScreen';
 import { HeroScreen } from './components/HeroScreen';
 import { StoryScreen } from './components/StoryScreen';
 import { PauseScreen, ResultScreen } from './components/ResultScreen';
 import { SettingsSheet } from './components/SettingsSheet';
+import { CaseResultScreen, CodexScreen, MapScreen } from './components/CaseScreens';
 
 const STATUS: Record<Screen, string> = {
   TITLE: '대기 중', PLAY: '진행 중', PAUSED: '일시정지', RESULT: '종료', HERO: '캐릭터 만들기', STORY: '이야기',
+  MAP: '사건 지도', CASE_RESULT: '사건 결과', CODEX: '도감·상점',
 };
 
 export function App() {
@@ -23,6 +26,7 @@ export function App() {
   const flashRef = useRef<HTMLDivElement>(null);
   const stageAreaRef = useRef<HTMLElement>(null);
   const boardRef = useRef<HTMLDivElement>(null);
+  const worldRef = useRef<HTMLDivElement>(null);
 
   // 엔진 시작 · 포커스 이탈 감시 · 개발용 핸들
   useEffect(() => {
@@ -82,6 +86,12 @@ export function App() {
     });
   }, [engine]);
 
+  // 배경 3D 장면: 포인터 위치에 따라 살짝 돌아간다 (게임 중에는 보이지 않는다)
+  useEffect(() => {
+    if (!appRef.current || !worldRef.current) return;
+    return attachTilt(appRef.current, worldRef.current, 7);
+  }, []);
+
   // 토스트
   const toastId = snap.toast?.id;
   const [toastOn, setToastOn] = useState(false);
@@ -93,8 +103,11 @@ export function App() {
   }, [toastId]);
 
   const { screen } = snap;
+  // 게임 밖 화면에서는 판·HUD를 치우고 3D 배경 장면을 보여 준다 (판 위에는 장식이 올라오지 않는다 — 공정성)
+  const bg = screen === 'PLAY' || screen === 'PAUSED' || screen === 'STORY' ? 'off' : 'on';
   return (
-    <div id="app" ref={appRef} data-screen={screen}>
+    <div id="app" ref={appRef} data-screen={screen} data-bg={bg}>
+      <BgScene worldRef={worldRef} hue={snap.themeHue} />
       <div id="fxLayer" ref={layerRef} aria-hidden="true" />
       <div id="flash" ref={flashRef} aria-hidden="true" />
 
@@ -116,6 +129,9 @@ export function App() {
       )}
       {screen === 'PAUSED' && <PauseScreen />}
       {screen === 'RESULT' && <ResultScreen />}
+      {screen === 'MAP' && <MapScreen />}
+      {screen === 'CASE_RESULT' && <CaseResultScreen />}
+      {screen === 'CODEX' && <CodexScreen />}
 
       {settingsOpen && <SettingsSheet onClose={() => setSettingsOpen(false)} />}
 

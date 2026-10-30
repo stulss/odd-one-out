@@ -1,10 +1,10 @@
 // 스테이지 생성 + 공정성 검증
 import { stageRng } from './rng';
+import { OBJECT_COUNT } from './objects';
 
-export type Shape = 'square' | 'circle' | 'diamond' | 'hexagon';
 export type AxisId =
-  | 'hue' | 'light' | 'size' | 'rotate' | 'radius'
-  | 'opacity' | 'offset' | 'skew' | 'sat' | 'inset';
+  | 'hue' | 'light' | 'size' | 'rotate' | 'blur'
+  | 'opacity' | 'offset' | 'skew' | 'sat' | 'edge';
 
 export interface Stage {
   n: number;
@@ -15,7 +15,7 @@ export interface Stage {
   axis: AxisId;
   delta: number;
   timeLimit: number;
-  shape: Shape;
+  kind: number; // 이 단계의 물건 종류 (objects.ts)
   hue: number;
 }
 
@@ -38,7 +38,8 @@ const GRIDS = [
 ];
 export const MAX_CELLS = 24;
 
-export const SHAPES: Shape[] = ['square', 'circle', 'diamond', 'hexagon'];
+/** 윤곽선 기본 두께(SVG 단위). 'edge' 축은 이 값에 delta를 더한다. */
+export const EDGE_BASE = 2.2;
 
 // 차이 축 10종. easy → hard 로 delta가 줄어들수록 어려워진다.
 export const DIFF_AXES: Record<AxisId, AxisSpec> = {
@@ -46,31 +47,19 @@ export const DIFF_AXES: Record<AxisId, AxisSpec> = {
   light:   { label: '밝기',   easy: 24, hard: 5,   min: 4,   css: d => `filter:brightness(${100 + d}%)` },
   size:    { label: '크기',   easy: 18, hard: 3.5, min: 3,   css: d => `scale:${(1 + d / 100).toFixed(3)}` },
   rotate:  { label: '회전',   easy: 20, hard: 3,   min: 2.5, css: d => `rotate:${d.toFixed(2)}deg` },
-  radius:  { label: '모서리', easy: 38, hard: 8,   min: 6,   css: d => `border-radius:${Math.max(0, 40 - d)}%` },
+  blur:    { label: '선명도', easy: 2.6, hard: 0.7, min: 0.6, css: d => `filter:blur(${d.toFixed(2)}px)` },
   opacity: { label: '투명도', easy: 26, hard: 7,   min: 6,   css: d => `opacity:${(1 - d / 100).toFixed(3)}` },
   offset:  { label: '위치',   easy: 9,  hard: 2,   min: 1.5, css: d => `translate:${d.toFixed(2)}px 0` },
   skew:    { label: '기울기', easy: 12, hard: 2.5, min: 2,   css: d => `transform:skewX(${d.toFixed(2)}deg)` },
   sat:     { label: '채도',   easy: 60, hard: 14,  min: 12,  css: d => `filter:saturate(${100 - d}%)` },
-  inset:   { label: '두께',   easy: 10, hard: 2,   min: 1.5, css: d => `box-shadow:inset 0 0 0 ${d.toFixed(1)}px #0E1116` },
+  edge:    { label: '윤곽선', easy: 4,  hard: 0.9, min: 0.7, css: d => `--edge:${(EDGE_BASE + d).toFixed(2)}` },
 };
 export const AXIS_IDS = Object.keys(DIFF_AXES) as AxisId[];
-
-// ── 눈에 안 보이는 조합 제거 (플레이 피드백: "다른 점이 구분이 안 간다") ─────────────
-// 모양과 축이 만나면 차이가 그려지지 않는 경우가 있었다 — 정답이 있는데 화면에는 없는 판이다.
-//  · 원 + 회전      : 원은 돌려도 똑같다
-//  · 마름모/육각 + 모서리·두께 : clip-path가 모서리와 안쪽 테두리를 잘라내서 안 보인다
-// 해당 조합이면 모양만 사각으로 바꾼다. 난수는 그대로 소비하므로 나머지 값(축·크기·정답 위치)은 변하지 않는다.
-const INVISIBLE: Partial<Record<Shape, AxisId[]>> = {
-  circle: ['rotate'],
-  diamond: ['radius', 'inset'],
-  hexagon: ['radius', 'inset'],
-};
-export const isVisible = (shape: Shape, axis: AxisId) => !(INVISIBLE[shape] ?? []).includes(axis);
 
 // 초반 워밍업: 1~5단계는 차이를 크게 (1.5배 → 1.1배). 이 뒤로는 기존 곡선 그대로.
 const warmup = (n: number) => (n <= 5 ? 1 + (6 - n) * 0.1 : 1);
 // 워밍업으로 키운 값이 화면을 깨뜨리지 않도록 축별 상한
-const CAP: Partial<Record<AxisId, number>> = { size: 26, offset: 12, radius: 40, sat: 90, opacity: 60 };
+const CAP: Partial<Record<AxisId, number>> = { size: 26, offset: 12, blur: 3.6, sat: 90, opacity: 60 };
 
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
@@ -118,10 +107,9 @@ export function makeStage(
 
   const stage: Stage = {
     n, cols: g.c, rows: g.r, total, answer, axis, delta, timeLimit,
-    shape: SHAPES[Math.floor(rnd() * SHAPES.length)],
+    kind: Math.floor(rnd() * OBJECT_COUNT),
     hue: Math.floor(rnd() * 360),
   };
-  if (!isVisible(stage.shape, axis)) stage.shape = 'square';
 
   return validate(stage) ? stage : relax(stage);
 }
@@ -162,6 +150,7 @@ export function oddStyle(stage: Stage, colorSafe: boolean): Record<string, strin
     css = DIFF_AXES[stage.axis].css(stage.delta);
   }
   const [prop, ...rest] = css.split(':');
-  // React 인라인 스타일은 camelCase 키를 요구한다 (border-radius → borderRadius)
-  return { [prop.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase())]: rest.join(':') };
+  // React 인라인 스타일은 camelCase 키를 요구한다 (box-shadow → boxShadow). 사용자 정의 속성(--edge)은 그대로 둔다.
+  const key = prop.startsWith('--') ? prop : prop.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase());
+  return { [key]: rest.join(':') };
 }

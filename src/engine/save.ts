@@ -3,7 +3,7 @@
 
 const KEY = 'ooo.v1';
 
-export type Mode = 'normal' | 'practice' | 'blitz';
+export type Mode = 'case' | 'normal' | 'practice' | 'blitz';
 export type Job = 'detective' | 'mage' | 'ninja' | 'cleric' | 'nomad' | 'rogue';
 export type HeroAcc = 'none' | 'lens' | 'staff' | 'flower';
 
@@ -27,6 +27,11 @@ export interface Store {
   hero: Hero; // name이 비어 있으면 첫 실행
   prologue: boolean; // 프롤로그를 본 적이 있는가
   mode: Mode; // 마지막에 고른 모드
+  coins: number; // 감별 코인 (소품·옷색·힌트에 쓴다)
+  hints: number; // 보유 힌트 수 (사건에서 정답 칸을 한 번 비춘다)
+  campaign: { stars: string }; // 사건별 별 수를 한 줄로: '3210…' (campaign.ts)
+  codex: string; // 물건별 발견 횟수, 쉼표 구분
+  unlocked: string; // 해금한 복장·소품·옷색 (예: 'job:mage,acc:staff')
   practiceAxis: string; // 연습 모드에서 고정할 차이 축 ('' = 무작위)
   bestBlitz: number; // 30초 도전 최고 단계
   ach: string; // 달성한 업적 id (쉼표 구분)
@@ -41,7 +46,12 @@ export const DEFAULT: Store = {
   settings: { sound: true, reducedMotion: false, tuneT: 4.4, colorSafe: false, highContrast: false },
   hero: { name: '', job: 'detective', hairColor: 1, skin: 1, outfit: 0, acc: 'none' },
   prologue: false,
-  mode: 'normal',
+  mode: 'case',
+  coins: 60,
+  hints: 3,
+  campaign: { stars: '' },
+  codex: '',
+  unlocked: '',
   practiceAxis: '',
   bestBlitz: 0,
   ach: '',

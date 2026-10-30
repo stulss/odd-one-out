@@ -6,11 +6,13 @@ import { Hero } from './Hero';
 
 export function PauseScreen() {
   const engine = useEngine();
+  const { caseRun } = useSnapshot();
   return (
     <section className="overlay" id="screenPause">
       <h1>일시정지</h1>
       <div className="sub">타이머가 멈췄습니다.</div>
       <button className="btn" id="btnResume" type="button" onClick={() => engine.togglePause()}>계속하기</button>
+      {caseRun && <button className="btn ghost" id="btnPauseMap" type="button" onClick={() => engine.openMap()}>사건 지도</button>}
       <button className="btn ghost" id="btnToTitle" type="button" onClick={() => engine.goTitle()}>처음으로</button>
     </section>
   );
@@ -40,6 +42,7 @@ export function ResultScreen() {
   return (
     <section className="overlay" id="screenResult" ref={rootRef}>
       <div className="pad"><div className="tilt" id="resultTilt" ref={tiltRef}>
+        <i className="platform" aria-hidden="true" />
         <div id="resultHero">
           <Hero hero={store.hero} tier={result.tier} mood={result.isBest ? 'happy' : 'dizzy'} evolve={result.promoted} />
         </div>

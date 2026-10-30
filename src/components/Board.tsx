@@ -2,6 +2,7 @@
 import { useEffect, useLayoutEffect, useRef, type CSSProperties, type RefObject } from 'react';
 import { useEngine, useSnapshot } from '../hooks/useEngine';
 import { oddStyle } from '../engine/stage';
+import { ObjectIcon } from './ObjectIcon';
 
 const GAP = 8;
 
@@ -49,6 +50,7 @@ export function Board({ stageAreaRef, boardRef }: Props) {
       if ((e.target as Element | null)?.closest?.('input, textarea, select')) return; // 이름 입력 중 'p'가 먹히면 안 된다
       const k = e.key;
       if (k === 'p' || k === 'P' || k === 'Escape') { e.preventDefault(); engine.togglePause(); return; }
+      if (k === 'h' || k === 'H') { engine.useHint(); return; }
 
       const s = engine.getSnapshot();
       const board = boardRef.current;
@@ -101,12 +103,14 @@ export function Board({ stageAreaRef, boardRef }: Props) {
             <button
               key={i}
               type="button"
-              className={`cell shape-${stage.shape}${reveal && odd ? ' is-answer' : ''}`}
+              className={`cell${reveal && odd ? ' is-answer' : ''}${snap.hintIndex === i ? ' is-hint' : ''}`}
               data-i={i}
               aria-label={`칸 ${i + 1}`}
               style={style}
               onPointerDown={() => { engine.unlock(); engine.select(i); }}
-            />
+            >
+              <ObjectIcon kind={stage.kind} />
+            </button>
           );
         })}
       </div>

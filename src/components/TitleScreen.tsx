@@ -4,7 +4,8 @@ import { MODES } from '../engine/game';
 import type { Mode } from '../engine/save';
 import { DIFF_AXES, AXIS_IDS } from '../engine/stage';
 import { challengeLabel } from '../engine/daily';
-import { tierOf, rankOf } from '../engine/story';
+import { RANKS } from '../engine/story';
+import { heroTier } from '../engine/campaign';
 import { attachTilt } from '../engine/fx';
 import { Hero } from './Hero';
 
@@ -31,10 +32,11 @@ export function TitleScreen({ onOpenSettings }: { onOpenSettings: () => void }) 
     <section className="overlay" id="screenTitle" ref={rootRef}>
       <div className="pad" id="titlePad">
         <div className="tilt" id="titleTilt" ref={tiltRef}>
-          <div id="titleHero"><Hero hero={store.hero} tier={tierOf(b.stages)} mood="happy" /></div>
+          <i className="platform" aria-hidden="true" />
+          <div id="titleHero"><Hero hero={store.hero} tier={heroTier(store)} mood="happy" /></div>
         </div>
       </div>
-      <div id="heroLine">{store.hero.name || '감별사'}<small>{rankOf(b.stages)}</small></div>
+      <div id="heroLine">{store.hero.name || '감별사'}<small>{RANKS[heroTier(store)].name}</small></div>
       <h1>딱 하나 이상함</h1>
       <div className="sub" id="challengeLabel">{challengeLabel(challenge)}</div>
       {challenge.rival && <div id="rivalBanner">친구의 기록 {challenge.rival}단계 — 넘어보세요</div>}
@@ -62,13 +64,16 @@ export function TitleScreen({ onOpenSettings }: { onOpenSettings: () => void }) 
       )}
 
       <div className="titleBtns">
-        <button className="btn" id="btnStart" type="button" onClick={() => engine.startPlay()}>▶ 시작하기</button>
+        <button className="btn" id="btnStart" type="button" onClick={() => engine.startPlay()}>{store.mode === 'case' && challenge.type === 'free' ? '▶ 사건부 열기' : '▶ 시작하기'}</button>
         <div className="row2">
           <button className="btn ghost" id="btnDaily" type="button" onClick={() => engine.playDaily()}>오늘의 문제</button>
           <button className="btn ghost" id="btnTitleSettings" type="button" onClick={onOpenSettings}>설정 · 업적</button>
         </div>
       </div>
-      <button className="linkbtn" id="btnHeroEdit" type="button" onClick={() => engine.openCreator()}>캐릭터 바꾸기</button>
+      <div className="row2 links">
+        <button className="linkbtn" id="btnHeroEdit" type="button" onClick={() => engine.openCreator()}>캐릭터 바꾸기</button>
+        <button className="linkbtn" id="btnTitleCodex" type="button" onClick={() => engine.openCodex()}>📖 도감 · 상점 (🪙 {store.coins})</button>
+      </div>
       <div className="sub" id="bestLine">{bestLine}</div>
       <div className="hint">여러 개 중 딱 하나만 다릅니다 · 오답은 시간 −1초</div>
     </section>
