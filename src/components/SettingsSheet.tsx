@@ -21,6 +21,8 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
         <input type="checkbox" id="optColor" checked={s.colorSafe} onChange={e => engine.setSetting('colorSafe', e.target.checked)} /></div>
       <div className="row"><label htmlFor="optContrast">고대비 (글씨·경계선 진하게)</label>
         <input type="checkbox" id="optContrast" checked={s.highContrast} onChange={e => engine.setSetting('highContrast', e.target.checked)} /></div>
+      <div className="row"><label htmlFor="opt3d">3D 캐릭터 (끄면 가벼운 2D 그림 · 오래된 기기용)</label>
+        <input type="checkbox" id="opt3d" checked={s.hero3d} onChange={e => engine.setSetting('hero3d', e.target.checked)} /></div>
       <div className="row"><label>업적 <span id="achCount">{have.size}/{list.length}</span></label></div>
       <ul id="achList">
         {list.map(a => {

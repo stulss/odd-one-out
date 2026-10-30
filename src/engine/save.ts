@@ -23,7 +23,7 @@ export interface Store {
   daily: { lastKey: string | null; bestStages: number };
   stats: { played: number; totalStages: number; totalTimeMs: number };
   streak: { count: number; lastPlayDate: string | null };
-  settings: { sound: boolean; reducedMotion: boolean; tuneT: number; colorSafe: boolean; highContrast: boolean };
+  settings: { sound: boolean; reducedMotion: boolean; tuneT: number; colorSafe: boolean; highContrast: boolean; hero3d: boolean };
   hero: Hero; // name이 비어 있으면 첫 실행
   prologue: boolean; // 프롤로그를 본 적이 있는가
   mode: Mode; // 마지막에 고른 모드
@@ -43,7 +43,7 @@ export const DEFAULT: Store = {
   daily: { lastKey: null, bestStages: 0 },
   stats: { played: 0, totalStages: 0, totalTimeMs: 0 },
   streak: { count: 0, lastPlayDate: null },
-  settings: { sound: true, reducedMotion: false, tuneT: 4.4, colorSafe: false, highContrast: false },
+  settings: { sound: true, reducedMotion: false, tuneT: 4.4, colorSafe: false, highContrast: false, hero3d: true },
   hero: { name: '', job: 'detective', hairColor: 1, skin: 1, outfit: 0, acc: 'none' },
   prologue: false,
   mode: 'case',

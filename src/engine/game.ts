@@ -19,6 +19,7 @@ import {
 } from './daily';
 import { PROLOGUE, zoneOf, rankOf, tierOf, closingLine, fill, type DialogLine } from './story';
 import { normalizeHero } from './heroData';
+import { bossOf, type BossDef } from './bosses';
 import {
   CASES, FINALE_COINS, FINALE_JOB, HINT_PACK, HINT_PRICE, addCodex, campaignTier, caseCoins, enforceUnlocks,
   heroTier, isCaseUnlocked, isUnlocked, priceOf, rateCase, setStars, starsOf, unlock, zoneHue, type UnlockKind,
@@ -51,7 +52,18 @@ export interface DialogRequest {
   hero: Hero;
   card: { k: string; n: string } | null; // 상단에 띄우는 구역/사건 카드
   hold: number;
+  cine: CineInfo | null; // 컷신 연출 (레터박스·배경·보스). null이면 평범한 대사 상자
 }
+
+export interface CineInfo {
+  hue: number; // 구역 색
+  tier: number; // 주인공 진화 단계
+  banner?: string; // 'WARNING' 같은 가로지르는 띠
+  boss?: BossDef;
+  defeated?: boolean; // 보스가 쓰러진 뒤의 장면
+}
+
+export interface BossInfo { def: BossDef; hp: number; maxHp: number; hitId: number; taunt: { id: number; text: string } | null }
 
 export interface CaseRunInfo { idx: number; id: number; round: number; rounds: number; title: string; zone: number }
 
@@ -90,6 +102,7 @@ export interface Snapshot {
   caseRun: CaseRunInfo | null;
   caseResult: CaseResultInfo | null;
   hintIndex: number | null; // 힌트로 비추는 칸
+  boss: BossInfo | null; // 보스전 중일 때만
   fallback: { visible: boolean; text: string; url: string };
   toast: { id: number; msg: string } | null;
   announce: { id: number; msg: string };
@@ -101,7 +114,8 @@ export type FxEvent =
   | { type: 'wrong'; index: number }
   | { type: 'over' }
   | { type: 'stage' }
-  | { type: 'zone'; hue: number };
+  | { type: 'zone'; hue: number }
+  | { type: 'bossDown' };
 
 type Listener = () => void;
 
@@ -125,6 +139,7 @@ export function createEngine() {
   let caseResult: CaseResultInfo | null = null;
   let hintIndex: number | null = null;
   let hintTimer = 0;
+  let bossHp = 0, bossHit = 0, bossTaunt: BossInfo['taunt'] = null, tauntTimer = 0;
   let codexBack: Screen = 'TITLE';
   let cardBlob: Blob | null = null;
   let fallback = { visible: false, text: '', url: '' };
@@ -155,12 +170,26 @@ export function createEngine() {
     return { idx: run.caseIdx, id: d.id, round: run.round, rounds: d.rounds, title: d.title, zone: d.zone };
   }
 
+  function bossInfo(): BossInfo | null {
+    if (run.mode !== 'case' || run.caseIdx < 0) return null;
+    if (screen !== 'PLAY' && screen !== 'PAUSED' && screen !== 'STORY') return null; // 결과·지도 화면에는 체력바를 남기지 않는다
+    const def = bossOf(CASES[run.caseIdx].id);
+    if (!def) return null;
+    return { def, hp: bossHp, maxHp: CASES[run.caseIdx].rounds, hitId: bossHit, taunt: bossTaunt };
+  }
+
+  function say(text: string, ms = 2200) {
+    bossTaunt = { id: ++seq, text };
+    window.clearTimeout(tauntTimer);
+    tauntTimer = window.setTimeout(() => { bossTaunt = null; emit(); }, ms);
+  }
+
   function build(): Snapshot {
     const logRows = Log.read();
     return {
       screen, store, challenge, stage: run.stage, stageId,
       n: run.n, points: run.points, combo: run.combo, mode: run.mode,
-      mood, themeHue, dialog, result, caseRun: caseRunInfo(), caseResult, hintIndex, fallback, toast: toastState, announce: announceState,
+      mood, themeHue, dialog, result, caseRun: caseRunInfo(), caseResult, hintIndex, boss: bossInfo(), fallback, toast: toastState, announce: announceState,
       log: {
         count: logRows.length,
         lines: Log.summary().map(g => `T=${g.tuneT}: ${g.n}회 · 중앙값 ${g.medianStages}단계 / ${g.medianSurvivalSec}초`),
@@ -274,7 +303,17 @@ export function createEngine() {
         store = Save.save(store);
       }
       if (run.mode === 'case') {
-        if (run.round >= CASES[run.caseIdx].rounds) { finishCase(true); return; }
+        const boss = bossOf(CASES[run.caseIdx].id);
+        if (boss) { // 정답 = 보스에게 한 방
+          bossHp = Math.max(0, bossHp - 1);
+          bossHit++;
+          if (bossHp === 1) say(boss.low, 2600);
+        }
+        if (run.round >= CASES[run.caseIdx].rounds) {
+          if (boss) { fx({ type: 'bossDown' }); Audio.sfx.boom(); }
+          finishCase(true);
+          return;
+        }
         run.round++;
       }
       run.n++;
@@ -286,6 +325,10 @@ export function createEngine() {
       Audio.sfx.wrong();
       Audio.vibrate(20);
       announce('오답');
+      if (run.mode === 'case') { // 보스는 오답을 놀린다
+        const boss = bossOf(CASES[run.caseIdx].id);
+        if (boss) say(boss.taunts[Math.floor(Math.random() * boss.taunts.length)]); // 연출용 난수 (퍼즐 시드와 무관)
+      }
       fx({ type: 'wrong', index: i });
       setMood('dizzy');
       if (run.mode !== 'practice') { // 연습: 페널티 없음
@@ -410,8 +453,8 @@ export function createEngine() {
   }
 
   // ── 대사 ────────────────────────────────────────────────
-  function play(lines: DialogLine[], card: DialogRequest['card'], hold: number, onDone: () => void) {
-    dialog = { id: ++seq, lines, hero: store.hero, card, hold };
+  function play(lines: DialogLine[], card: DialogRequest['card'], hold: number, onDone: () => void, cine: CineInfo | null = null) {
+    dialog = { id: ++seq, lines, hero: store.hero, card, hold, cine };
     dialogDone = onDone;
   }
   function finishDialog() {
@@ -486,7 +529,7 @@ export function createEngine() {
   }
 
   // ── 사건부 (캠페인) ─────────────────────────────────────
-  function openMap() { show('MAP'); emit(); }
+  function openMap() { bossTaunt = null; show('MAP'); emit(); }
 
   function startCase(i: number, skipIntro = false) {
     const def = CASES[i];
@@ -500,19 +543,33 @@ export function createEngine() {
     run.rootKey = `k:${def.id}:${freeChallenge().key}`; // 시도할 때마다 다른 문제 (같은 위치를 외울 수 없다)
     run.startedAt = performance.now();
     cardBlob = null; result = null; caseResult = null; hintIndex = null;
+    bossHp = def.rounds; bossTaunt = null;
     setMood('idle');
     themeHue = zoneHue(def.zone);
 
     const first = starsOf(store, i) === 0;
     if (skipIntro || !first) { show('PLAY'); nextStage(); return; }
     const name = store.hero.name;
-    const zoneFirst = i % 3 === 0; // 구역의 첫 사건이면 구역 소개도 함께
+    const hue = zoneHue(def.zone);
+    const tier = heroTier(store);
+    const boss = bossOf(def.id);
+    fx({ type: 'zone', hue });
+
+    if (boss) { // ── 보스 등장 컷신: 경보 · WARNING 띠 · 보스 대사
+      Audio.sfx.alarm();
+      const lines = boss.intro.map(l => ({ ...l, text: fill(l.text, name) }));
+      play(lines, { k: 'BOSS', n: boss.name }, 700, () => { show('PLAY'); nextStage(); }, { hue, tier, banner: 'WARNING', boss });
+      show('STORY');
+      emit();
+      return;
+    }
+    const zoneFirst = i % 3 === 0; // 구역의 첫 사건이면 구역 소개 컷신도 함께
     const lines: DialogLine[] = [
       ...(zoneFirst ? zoneOf(def.startN).lines.map(t => ({ who: 'npc' as const, text: fill(t, name) })) : []),
       { who: 'npc', text: fill(def.brief, name) },
     ];
-    fx({ type: 'zone', hue: zoneHue(def.zone) });
-    play(lines, { k: `CASE ${def.id}`, n: def.title }, 650, () => { show('PLAY'); nextStage(); });
+    play(lines, { k: `CASE ${def.id}`, n: def.title }, 650, () => { show('PLAY'); nextStage(); },
+      zoneFirst ? { hue, tier } : null);
     show('STORY');
     emit();
   }
@@ -565,8 +622,28 @@ export function createEngine() {
         ? stars === 3 ? '완벽해요! 현장 요원이 따로 없네요.' : stars === 2 ? '좋아요, 훌륭한 수사였어요!' : '해결은 했어요. 별 3개에 도전해 볼래요?'
         : '아쉬워요. 시간이 부족했어요. 한 번 더 도전해 봐요!',
     };
-    show('CASE_RESULT');
     announce(success ? `사건 해결. 별 ${stars}개` : '수사 실패');
+
+    // 보스를 처음 쓰러뜨렸다면: 격파 컷신 → (복장 해금 장면) → 결과 화면
+    const boss = bossOf(def.id);
+    if (success && boss && firstClear) {
+      const name = store.hero.name;
+      const hue = zoneHue(def.zone);
+      const lines: DialogLine[] = boss.defeat.map(l => ({ ...l, text: fill(l.text, name) }));
+      const jobReward = FINALE_JOB[def.id];
+      if (jobReward) {
+        lines.push({
+          who: 'sys', tier, hero: { ...store.hero, job: jobReward },
+          text: `새 복장 해금: ${jobLabel(jobReward)}! 캐릭터 바꾸기에서 입어 보세요.`,
+        });
+      }
+      Audio.sfx.fanfare();
+      play(lines, { k: 'CLEAR', n: boss.name }, 750, () => { show('CASE_RESULT'); emit(); }, { hue, tier, boss, defeated: true });
+      show('STORY');
+      emit();
+      return;
+    }
+    show('CASE_RESULT');
     emit();
   }
 

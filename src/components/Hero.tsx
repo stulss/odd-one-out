@@ -6,10 +6,12 @@
 //  · 등급(tier 0~5)이 오르면 복장 종류와 상관없이 같은 방식으로 한 겹씩 얹힌다.
 //      0 기본 복장 → 1 브로치 → 2 어깨 망토 → 3 뒷망토+견장 → 4 금장+오라 → 5 날개+후광
 // 표정·진화 연출은 data-mood / .evolve 와 theme.css 가 맡는다. viewBox 120×150, 발끝이 y≈146.
-import { useId, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import type { Hero as HeroData, Job } from '../engine/save';
 import type { Mood } from '../engine/game';
 import { HAIR_COLORS, OUTFIT_HUES, SKINS, normalizeHero } from '../engine/heroData';
+import { hero3dEnabled } from '../hero3d/support';
+import type { HeroView } from '../hero3d';
 
 const LINE = '#3a2c2c'; // 따뜻한 갈색 윤곽선 — 순검정보다 손그림 느낌이 난다
 const GOLD = '#f2c14e';
@@ -30,7 +32,51 @@ interface Props {
   evolve?: boolean; // 진화 연출 (등장 시 한 번)
 }
 
-export function Hero({ hero: raw, tier = 0, mood = 'idle', evolve = false }: Props) {
+/**
+ * 캐릭터 — 3D가 기본이고, WebGL을 못 쓰거나 설정에서 끄면 2D(SVG)로 그린다.
+ * 3D는 three.js를 처음 필요할 때 내려받으므로(코드 분할), 불러오는 동안에도 2D가 먼저 보인다.
+ */
+export function Hero(props: Props) {
+  return hero3dEnabled() ? <Hero3D {...props} /> : <HeroSvg {...props} />;
+}
+
+function Hero3D(props: Props) {
+  const { hero, tier = 0, mood = 'idle' } = props;
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const viewRef = useRef<HeroView | null>(null);
+  const latest = useRef(props);
+  latest.current = props;
+  const [ready, setReady] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let dead = false;
+    let view: HeroView | null = null;
+    import('../hero3d').then(m => {
+      if (dead || !canvasRef.current) return;
+      view = m.createHeroView(canvasRef.current);
+      viewRef.current = view;
+      const p = latest.current;
+      view.update(normalizeHero(p.hero), p.tier ?? 0, p.mood ?? 'idle', !!p.evolve); // 진화 연출은 만들어질 때 한 번
+      setReady(true);
+    }).catch(() => { if (!dead) setFailed(true); }); // 불러오기 실패 → 2D로 계속
+    return () => { dead = true; view?.dispose(); viewRef.current = null; };
+  }, []);
+
+  const hk = JSON.stringify([hero.job, hero.hairColor, hero.skin, hero.outfit, hero.acc]);
+  useEffect(() => {
+    viewRef.current?.update(normalizeHero(latest.current.hero), tier, mood, false);
+  }, [hk, tier, mood]);
+
+  return (
+    <div className="chara3dWrap" data-mood={mood} data-tier={tier} data-job={hero.job}>
+      {(!ready || failed) && <HeroSvg {...props} />}
+      {!failed && <canvas ref={canvasRef} className={'chara3d' + (ready ? ' ready' : '')} aria-hidden="true" />}
+    </div>
+  );
+}
+
+export function HeroSvg({ hero: raw, tier = 0, mood = 'idle', evolve = false }: Props) {
   const gid = useId();
   const hero = normalizeHero(raw);
   const h = OUTFIT_HUES[hero.outfit];

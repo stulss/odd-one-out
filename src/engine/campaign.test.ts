@@ -94,3 +94,31 @@ describe('campaign', () => {
     expect(heroTier(store)).toBe(4);
   });
 });
+
+import { BOSSES, bossOf } from './bosses';
+
+describe('bosses', () => {
+  it('구역 마지막 사건마다 보스가 한 명씩 있다', () => {
+    expect(BOSSES.map(b => b.caseId)).toEqual(CASES.filter(c => c.finale).map(c => c.id));
+    for (const c of CASES) expect(!!bossOf(c.id)).toBe(c.finale);
+  });
+
+  it('보스 데이터가 유효하다 (물건 종류·컷신 대사·도발)', () => {
+    for (const b of BOSSES) {
+      expect(b.kind).toBeGreaterThanOrEqual(0);
+      expect(b.kind).toBeLessThan(OBJECT_COUNT);
+      expect(b.taunts.length).toBeGreaterThanOrEqual(3);
+      expect(b.low.length).toBeGreaterThan(0);
+      for (const l of [...b.intro, ...b.defeat]) {
+        expect(['npc', 'hero', 'boss', 'sys']).toContain(l.who);
+        expect(l.text.length).toBeGreaterThan(0);
+      }
+      expect(b.intro.some(l => l.who === 'boss')).toBe(true); // 보스가 먼저 말을 건다
+      expect(b.defeat.some(l => l.who === 'boss')).toBe(true);
+    }
+  });
+
+  it('보스마다 쓰는 물건이 다르다', () => {
+    expect(new Set(BOSSES.map(b => b.kind)).size).toBe(BOSSES.length);
+  });
+});

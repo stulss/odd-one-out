@@ -37,11 +37,12 @@ export function App() {
   }, [engine]);
 
   // 설정이 바뀌면 문서 속성(움직임 줄이기·고대비)에 반영 — CSS와 연출 코드가 이 속성을 읽는다
-  const { reducedMotion, highContrast } = snap.store.settings;
+  const { reducedMotion, highContrast, hero3d } = snap.store.settings;
   useEffect(() => {
     document.documentElement.dataset.reduced = reducedMotion ? 'on' : 'off';
     document.documentElement.dataset.contrast = highContrast ? 'on' : 'off';
-  }, [reducedMotion, highContrast]);
+    document.documentElement.dataset.hero3d = hero3d ? 'on' : 'off';
+  }, [reducedMotion, highContrast, hero3d]);
 
   // 구역 테마색 (CSS 변수 --zh가 부드럽게 전환된다)
   useEffect(() => {
@@ -82,6 +83,13 @@ export function App() {
         case 'zone':
           fx.pulse(`hsl(${e.hue} 80% 55%)`, 0.6);
           break;
+        case 'bossDown': { // 보스 격파: 흰 섬광 + 큰 흔들림 + 보스 아이콘에서 파티클 폭발
+          fx.shake(0.9);
+          fx.pulse('rgb(255 255 255)', 0.85);
+          const icon = document.getElementById('bossFig') ?? app.querySelector('.bossFig');
+          if (icon) { fx.burst(icon, 3, 0); fx.burst(icon, 3, 40); fx.burst(icon, 3, 340); }
+          break;
+        }
       }
     });
   }, [engine]);

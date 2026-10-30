@@ -5,6 +5,7 @@ import { useEngine, useSnapshot } from '../hooks/useEngine';
 import { zoneOf, tierOf } from '../engine/story';
 import { heroTier } from '../engine/campaign';
 import { Hero } from './Hero';
+import { BossFigure } from './BossFigure';
 
 export function Hud({ onOpenSettings }: { onOpenSettings: () => void }) {
   const engine = useEngine();
@@ -69,6 +70,24 @@ export function Hud({ onOpenSettings }: { onOpenSettings: () => void }) {
             onClick={onOpenSettings}>⚙</button>
         </span>
       </div>
+      {snap.boss && (
+        <div className="bossBar" id="bossBar">
+          <div className={'bossIcon' + (snap.boss.hitId > 0 ? ' hit' : '')} key={snap.boss.hitId}>
+            <BossFigure boss={snap.boss.def} defeated={snap.boss.hp === 0} small />
+            {snap.boss.hitId > 0 && <span className="dmg">-1</span>}
+          </div>
+          <div className="bossMain">
+            <div className="bossName">
+              {snap.boss.taunt
+                ? <em className="taunt" key={snap.boss.taunt.id}>“{snap.boss.taunt.text}”</em>
+                : <>👹 {snap.boss.def.name}</>}
+            </div>
+            <div className="hpBar" role="img" aria-label={`보스 체력 ${snap.boss.hp}/${snap.boss.maxHp}`}>
+              {Array.from({ length: snap.boss.maxHp }, (_, i) => <i key={i} className={'hpSeg' + (i < snap.boss!.hp ? ' on' : '')} />)}
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   );
 }

@@ -7,8 +7,11 @@ export const ZONE_LEN = 5; // 5단계마다 구역이 바뀐다
 
 export const NPC_NAME = '렌즈';
 
-export type Speaker = 'npc' | 'hero' | 'sys';
-export interface DialogLine { who: Speaker; text: string; tier?: number }
+import type { Hero } from './save';
+
+export type Speaker = 'npc' | 'hero' | 'sys' | 'boss';
+/** hero: 화면에 보일 캐릭터를 덮어쓴다 (새 복장 해금 장면 등) */
+export interface DialogLine { who: Speaker; text: string; tier?: number; hero?: Hero }
 
 export const PROLOGUE: DialogLine[] = [
   { who: 'npc', text: "어서 와요, {n}. 저는 이상 감별국 안내 로봇 '렌즈'예요." },

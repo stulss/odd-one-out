@@ -44,6 +44,12 @@ export const sfx = {
   wrong() { tone(180, 0.18, 'square', 0.05, 120); },
   over() { tone(320, 0.5, 'triangle', 0.07, 90); },
   best() { tone(880, 0.1, 'sine', 0.07); setTimeout(() => tone(1320, 0.18, 'sine', 0.06), 110); },
+  /** 보스 등장 경보 */
+  alarm() { for (let i = 0; i < 3; i++) setTimeout(() => { tone(520, 0.16, 'square', 0.05, 360); }, i * 260); },
+  /** 보스 격파 폭발 */
+  boom() { tone(120, 0.6, 'sawtooth', 0.08, 36); setTimeout(() => tone(70, 0.5, 'triangle', 0.08, 30), 80); },
+  /** 보스 격파 팡파르 */
+  fanfare() { [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => tone(f, 0.22, 'triangle', 0.07), i * 130)); },
 };
 
 export function vibrate(ms: number): void {

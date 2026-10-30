@@ -87,7 +87,7 @@ button{ font:inherit; color:inherit; cursor:pointer; border:0; background:none }
   display:none; flex-direction:column; align-items:center; justify-content:safe center;
   gap:14px; padding:24px; text-align:center;
   background:rgba(14,17,22,.94); backdrop-filter:blur(4px);
-  animation:overlayIn .5s cubic-bezier(.2,.9,.3,1); overflow-y:auto;
+  animation:overlayIn .5s cubic-bezier(.2,.9,.3,1); overflow-y:auto; overflow-x:hidden;
 }
 @keyframes overlayIn{ from{ opacity:0; transform:perspective(900px) rotateX(9deg) translateY(22px) scale(.97) } }
 #app[data-screen="TITLE"]  #screenTitle,

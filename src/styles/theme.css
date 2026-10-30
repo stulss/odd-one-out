@@ -289,3 +289,90 @@ h1{
 @media (prefers-reduced-motion:reduce){
   .bgWorld,.bgObj,.bgObj .obj,.platform::before,.stamp,.zoneBlock,.caseNode.current,.codexCard{ animation:none !important }
 }
+
+/* ── 컷신 연출 ─────────────────────────────────────────
+   위아래 검은 띠(레터박스)가 닫히며 시작하고, 말하는 배우가 앞으로 나와 밝아진다. */
+.overlay.cine{ background:radial-gradient(ellipse at 50% 40%, hsl(var(--zh) 45% 16% / .92), rgba(5,6,10,.97) 75%) !important; backdrop-filter:none !important }
+#app[data-bg="off"] .overlay.cine{ background:radial-gradient(ellipse at 50% 40%, hsl(var(--zh) 45% 16% / .94), rgba(5,6,10,.98) 75%) !important }
+.cineBar{ position:absolute; left:0; right:0; height:11%; background:#000; z-index:4; pointer-events:none }
+.cineBar.top{ top:0; animation:barTop .6s cubic-bezier(.2,.9,.3,1) both }
+.cineBar.bottom{ bottom:0; animation:barBottom .6s cubic-bezier(.2,.9,.3,1) both }
+@keyframes barTop{ from{ transform:translateY(-100%) } }
+@keyframes barBottom{ from{ transform:translateY(100%) } }
+.cineGlow{ position:absolute; left:50%; top:46%; width:420px; height:420px; margin:-210px 0 0 -210px; border-radius:50%; pointer-events:none;
+  background:radial-gradient(circle, hsl(var(--zh) 80% 55% / .28), transparent 66%); animation:glowPulse 3.2s ease-in-out infinite alternate }
+@keyframes glowPulse{ to{ transform:scale(1.18); opacity:.7 } }
+.overlay.bossScene .cineGlow{ background:radial-gradient(circle, rgb(220 40 60 / .34), transparent 66%) }
+.cineStage{ position:relative; z-index:2; display:flex; justify-content:space-between; align-items:flex-end; width:min(380px,100%); height:190px; perspective:800px; margin-top:6px }
+.actor{ transition:transform .4s cubic-bezier(.2,.9,.3,1), filter .4s ease, opacity .4s; filter:brightness(.5) saturate(.6); transform:translateZ(-30px) scale(.9) }
+.actor.active{ filter:none; transform:translateZ(40px) scale(1.08) }
+.actor.left{ --hs:150px; transform-origin:50% 100% } .actor.right{ --hs:150px }
+.actor.left{ animation:actorInL .7s cubic-bezier(.2,.9,.3,1) both } .actor.right{ animation:actorInR .7s cubic-bezier(.2,.9,.3,1) .1s both }
+@keyframes actorInL{ from{ opacity:0; margin-left:-60px } }
+@keyframes actorInR{ from{ opacity:0; margin-right:-60px } }
+.overlay.cine .dlg{ position:relative; z-index:3 }
+.overlay.cine #skipHint{ position:relative; z-index:3 }
+.overlay.cine #zoneCard{ position:relative; z-index:3 }
+#zoneCard.boss .zc{ border-color:rgb(255 107 107 / .75); background:linear-gradient(150deg,rgb(120 18 36 / .92),rgb(28 10 16 / .92)); box-shadow:0 14px 34px -10px rgb(255 60 80 / .55) }
+#zoneCard.boss .zc-k{ color:#ff8a9a }
+.bubble.boss{ border-color:rgb(255 107 107 / .6); background:linear-gradient(160deg,rgb(255 60 80 / .12),var(--bg-soft)) }
+.bubble.boss #dlgWho{ color:#ff8a9a }
+
+/* WARNING 띠: 화면을 가로질러 지나간다 */
+.warnBanner{ position:absolute; z-index:5; left:-12%; right:-12%; top:38%; padding:9px 0; text-align:center; font-weight:900; font-size:30px; letter-spacing:.5em; color:#fff;
+  text-shadow:0 2px 0 rgb(0 0 0 / .6); pointer-events:none;
+  background:repeating-linear-gradient(135deg,#b3202f 0 16px,#1b1f2a 16px 32px); border-block:3px solid #ff4d5f;
+  box-shadow:0 0 28px rgb(255 60 80 / .7); animation:warnSweep 1.3s cubic-bezier(.3,.8,.3,1) both }
+@keyframes warnSweep{
+  0%{ transform:translateX(-115%) rotate(-5deg) } 22%{ transform:translateX(0) rotate(-5deg) }
+  78%{ transform:translateX(0) rotate(-5deg); opacity:1 } 100%{ transform:translateX(115%) rotate(-5deg); opacity:0 } }
+
+/* 보스 */
+.bossFig{ position:relative; width:var(--bs,var(--hs,64px)); height:var(--bs,var(--hs,64px)); flex:none }
+.bossFig .obj,.bossFig .bossFace{ position:absolute; inset:0; width:100%; height:100%; overflow:visible }
+.bossFig::before{ content:''; position:absolute; inset:-14%; border-radius:50%; z-index:-1;
+  background:radial-gradient(circle, rgb(255 60 80 / .5), transparent 68%); animation:auraPulse 1.8s ease-in-out infinite }
+.bossFig{ animation:bossBob 2.2s ease-in-out infinite; isolation:isolate }
+@keyframes bossBob{ 50%{ transform:translateY(-5%) scale(1.04) } }
+.bossFig.small{ --bs:64px }
+.bossFig.down{ filter:grayscale(1) brightness(.55); animation:bossDown 1.2s ease-out both }
+.bossFig.down::before{ display:none }
+@keyframes bossDown{ from{ transform:scale(1.2) rotate(0) } to{ transform:scale(.92) rotate(14deg) translateY(6%) } }
+.actor .bossFig{ --bs:150px }
+
+/* 보스전 체력바 (HUD 아래) */
+.bossBar{ display:flex; align-items:center; gap:10px; padding:6px 10px; border-radius:12px; border:1px solid rgb(255 107 107 / .45);
+  background:linear-gradient(90deg, rgb(120 20 40 / .5), rgb(20 24 34 / .55)); animation:bossBarIn .5s cubic-bezier(.2,.9,.3,1) both }
+@keyframes bossBarIn{ from{ opacity:0; transform:perspective(500px) rotateX(-40deg) translateY(-10px) } }
+.bossIcon{ position:relative; flex:none; --bs:40px }
+.bossIcon .bossFig{ --bs:40px; animation:none }
+.bossIcon.hit{ animation:bossHit .45s ease }
+@keyframes bossHit{ 20%{ transform:translateX(-6px) rotate(-8deg); filter:brightness(2.2) } 60%{ transform:translateX(5px) rotate(6deg) } }
+.dmg{ position:absolute; right:-6px; top:-6px; font-weight:900; font-size:18px; color:#ffd75e; text-shadow:0 1px 0 #000; pointer-events:none; animation:dmgUp .9s ease-out both }
+@keyframes dmgUp{ from{ opacity:1; transform:translateY(8px) scale(.6) } 30%{ transform:translateY(-8px) scale(1.3) } to{ opacity:0; transform:translateY(-26px) scale(1) } }
+.bossMain{ flex:1; min-width:0; display:grid; gap:5px }
+.bossName{ font-size:13px; font-weight:800; color:#ff9aa8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+.taunt{ font-style:normal; color:#ffd2d8; animation:tauntPop .3s ease both }
+@keyframes tauntPop{ from{ opacity:0; transform:translateY(5px) } }
+.hpBar{ display:flex; gap:3px }
+.hpSeg{ flex:1; height:9px; border-radius:3px; background:#3a1c22; box-shadow:inset 0 1px 2px rgb(0 0 0 / .5) }
+.hpSeg.on{ background:linear-gradient(#ff7b8a,#c23a4a); box-shadow:0 0 6px rgb(255 80 100 / .6) }
+
+:root[data-reduced="on"] .cineBar,:root[data-reduced="on"] .cineGlow,:root[data-reduced="on"] .actor,:root[data-reduced="on"] .warnBanner,
+:root[data-reduced="on"] .bossFig,:root[data-reduced="on"] .bossFig::before,:root[data-reduced="on"] .bossBar,:root[data-reduced="on"] .bossIcon.hit,
+:root[data-reduced="on"] .dmg,:root[data-reduced="on"] .taunt{ animation:none !important }
+:root[data-reduced="on"] .warnBanner{ opacity:.0 }
+@media (prefers-reduced-motion:reduce){
+  .cineBar,.cineGlow,.actor,.warnBanner,.bossFig,.bossFig::before,.bossBar,.bossIcon.hit,.dmg,.taunt{ animation:none !important }
+}
+
+/* ── 3D 캐릭터: 2D와 같은 자리·크기. 오라·날개가 들어갈 여백 때문에 캔버스를 1.5배로 키워 가운데에 둔다 ── */
+.chara3dWrap{ position:relative; height:var(--hs,96px); aspect-ratio:120/150; flex:none; display:block }
+.chara3d{ position:absolute; left:50%; top:50%; height:150%; aspect-ratio:4/5; transform:translate(-50%,-50%);
+  pointer-events:none; opacity:0; transition:opacity .25s ease; filter:drop-shadow(0 4px 6px rgb(0 0 0 / .35)) }
+.chara3d.ready{ opacity:1 }
+.chara3dWrap > .chara{ position:absolute; inset:0 }
+.chara3dWrap .chara{ animation:none }
+/* 3D 무대(platform)가 캐릭터 캔버스를 가리지 않도록 캐릭터를 앞으로 끌어낸다 (3D 정렬은 평면 교차를 그대로 보여 준다) */
+.pad .tilt > :not(.platform){ transform:translateZ(60px) }
+.platform{ transform:rotateX(74deg) translateZ(-70px) }
