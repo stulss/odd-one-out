@@ -4,7 +4,7 @@ import { DIFF_AXES } from './stage.js';
 
 const W = 1080, H = 1350;
 
-export function drawCard(canvas, { stages, bestReaction, avgReaction, label, stage, isBest }){
+export function drawCard(canvas, { stages, bestReaction, avgReaction, label, stage, isBest, who }){
   canvas.width = W; canvas.height = H;
   const g = canvas.getContext('2d');
 
@@ -19,6 +19,8 @@ export function drawCard(canvas, { stages, bestReaction, avgReaction, label, sta
   // 상단 워드마크
   g.fillStyle = '#5EE6C5'; g.font = font(46);
   g.fillText('딱 하나 이상함', W / 2, 150);
+
+  if (who){ g.fillStyle = '#E8EDF4'; g.font = font(36, '600'); g.fillText(who, W / 2, 210); }
 
   // 거대 숫자
   g.fillStyle = '#E8EDF4'; g.font = font(260);

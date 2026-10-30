@@ -18,6 +18,17 @@ export function createRenderer(boardEl, stageAreaEl, onSelect){
 
   let current = null;
   let focusIndex = 0;
+  let colorSafe = false;
+
+  // 색 구분이 어려운 사용자용: 색조·채도 차이를 밝기 차이로 바꿔 그린다.
+  // 스테이지 데이터(축·정답 위치)는 그대로라 같은 도전장을 다른 설정으로 풀어도 같은 문제다.
+  function cssFor(stage){
+    if (colorSafe && (stage.axis === 'hue' || stage.axis === 'sat')){
+      const k = stage.axis === 'hue' ? 0.7 : 0.4;
+      return DIFF_AXES.light.css(Math.max(DIFF_AXES.light.min, stage.delta * k));
+    }
+    return DIFF_AXES[stage.axis].css(stage.delta);
+  }
 
   // 셀 크기는 화면에 맞춰 픽셀만 달라진다. 칸 수는 절대 달라지지 않는다(시드 재현성).
   function layout(){
@@ -37,14 +48,13 @@ export function createRenderer(boardEl, stageAreaEl, onSelect){
     focusIndex = 0;
     boardEl.style.setProperty('--cols', stage.cols);
     boardEl.style.setProperty('--rows', stage.rows);
-    const spec = DIFF_AXES[stage.axis];
     const base = `--hue:${stage.hue}`;
     for (let i = 0; i < MAX_CELLS; i++){
       const el = cells[i];
       if (i >= stage.total){ el.hidden = true; continue; }
       el.hidden = false;
       el.className = 'cell shape-' + stage.shape;
-      el.style.cssText = base + ';' + (i === stage.answer ? spec.css(stage.delta) : '');
+      el.style.cssText = base + ';' + (i === stage.answer ? cssFor(stage) : '');
     }
     layout();
   }
@@ -91,6 +101,6 @@ export function createRenderer(boardEl, stageAreaEl, onSelect){
 
   window.addEventListener('resize', layout);
 
-  return { draw, layout, markWrong, markCorrect, revealAnswer, clearReveal,
+  return { draw, layout, setColorSafe(v){ colorSafe = !!v; }, markWrong, markCorrect, revealAnswer, clearReveal,
            moveFocus, getFocus, cells };
 }

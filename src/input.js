@@ -24,6 +24,7 @@ export function createInput(boardEl, handlers){
   // 키보드만으로도 완주할 수 있어야 한다
   document.addEventListener('keydown', e => {
     if (e.repeat) return;
+    if (e.target?.closest?.('input, textarea, select')) return;   // 이름 입력 중 'p'가 일시정지로 먹히면 안 된다
     const k = e.key;
 
     if (k === 'p' || k === 'P' || k === 'Escape'){ e.preventDefault(); handlers.onPause(); return; }

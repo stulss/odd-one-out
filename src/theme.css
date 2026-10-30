@@ -1,0 +1,183 @@
+/* 테마 — 인라인 크리티컬 CSS 위에 얹는 시각 레이어.
+   주의: .cell 에는 box-shadow · filter · 배경 그라데이션을 걸지 않는다.
+   차이 축(두께·밝기·채도·색조…)이 같은 속성을 인라인으로 덮어쓰기 때문에,
+   여기서 칠하면 '정답 칸만 장식이 사라지는' 단서가 생긴다. */
+
+@property --zh { syntax:'<number>'; inherits:true; initial-value:160 }
+:root{ --zh:160; transition:--zh .9s ease; --accent:hsl(var(--zh) 70% 62%) }
+
+/* ── 배경: 구역 색에 따라 천천히 번지는 빛 ───────────────── */
+body::before{
+  content:''; position:fixed; inset:-25%; z-index:-1; pointer-events:none;
+  background:
+    radial-gradient(38% 32% at 18% 14%, hsl(var(--zh) 70% 24% / .55), transparent 70%),
+    radial-gradient(42% 36% at 86% 84%, hsl(calc(var(--zh) + 70) 60% 22% / .45), transparent 70%);
+  animation:drift 26s ease-in-out infinite alternate;
+}
+@keyframes drift{ to{ transform:translate3d(3%,2%,0) rotate(4deg) } }
+
+/* ── 버튼: 눌리는 깊이감 ─────────────────────────────── */
+.btn{
+  box-shadow:0 4px 0 hsl(165 55% 30%), 0 12px 24px -10px rgb(94 230 197 / .55);
+  transition:transform .08s ease, box-shadow .08s ease, filter .15s;
+}
+.btn:active{ transform:translateY(3px); box-shadow:0 1px 0 hsl(165 55% 30%), 0 6px 14px -8px rgb(94 230 197 / .5) }
+.btn.ghost{ box-shadow:0 3px 0 #090c10; background:linear-gradient(180deg,#1b212b,#161B22) }
+.btn.ghost:active{ box-shadow:0 0 0 #090c10 }
+.btn:focus-visible,.chip:focus-visible,.modes button:focus-visible{ outline:3px solid var(--accent); outline-offset:3px }
+
+/* ── 패널 ───────────────────────────────────────────── */
+.rules{ background:linear-gradient(160deg,rgb(255 255 255 / .05),rgb(255 255 255 / .01)); backdrop-filter:blur(6px) }
+.overlay{ background:rgba(10,13,18,.82) }
+
+/* ── 제목 로고: 겹친 그림자로 두께를 준다 ─────────────── */
+h1{
+  background:linear-gradient(180deg,#fff,hsl(var(--zh) 80% 78%));
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+  filter:drop-shadow(0 3px 0 hsl(var(--zh) 50% 26%)) drop-shadow(0 8px 16px rgb(0 0 0 / .5));
+}
+
+/* ── HUD ───────────────────────────────────────────── */
+#hudRow{ gap:10px }
+#heroMini{ font-size:34px; width:40px; height:40px; display:grid; place-items:center; flex:none }
+.hudCol{ display:grid; line-height:1.25; min-width:0 }
+#zoneName{ color:var(--accent) !important; font-size:12px; font-weight:700; letter-spacing:.02em;
+           white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+.hudStat{ display:flex; align-items:baseline; gap:6px }
+#comboChip{ flex:none; white-space:nowrap; font-weight:800; font-size:14px; color:var(--warn); padding:3px 9px; border-radius:99px;
+            background:rgb(255 180 84 / .12); border:1px solid rgb(255 180 84 / .35);
+            transition:transform .15s; font-variant-numeric:tabular-nums }
+#comboChip[hidden]{ display:none }
+#comboChip.bump{ animation:bump .25s ease }
+#comboChip.hot{ box-shadow:0 0 14px rgb(255 180 84 / .6); color:#fff; background:rgb(255 140 40 / .35) }
+@keyframes bump{ 40%{ transform:scale(1.28) } }
+#gaugeTrack{ height:8px; box-shadow:inset 0 1px 2px rgb(0 0 0 / .5) }
+#gauge{ box-shadow:0 0 10px currentColor; color:var(--brand) }
+#gauge.warn{ color:var(--warn) }
+
+/* ── 게임판 3D 무대 ─────────────────────────────────── */
+#stageArea{ perspective:900px; perspective-origin:50% 40% }
+#board{ transform-style:preserve-3d }
+.cell.is-answer{ animation:ansPulse .9s ease-in-out infinite }
+@keyframes ansPulse{ 50%{ outline-offset:9px; outline-color:transparent } }
+
+/* ── 연출 레이어 ───────────────────────────────────── */
+#fxLayer{ position:absolute; inset:0; z-index:4; pointer-events:none; overflow:hidden }
+.fx-p{ position:absolute; border-radius:50%; will-change:transform,opacity }
+.fx-ring{ position:absolute; border-radius:30%; border:3px solid var(--accent); will-change:transform,opacity }
+#flash{ position:absolute; inset:0; z-index:4; pointer-events:none; opacity:0 }
+
+/* ── 캐릭터 ────────────────────────────────────────── */
+.hero{ position:relative; width:1em; height:1em; font-size:var(--hs,96px); flex:none;
+       animation:heroBob 2.6s ease-in-out infinite }
+.hero::after{ content:''; position:absolute; left:14%; right:14%; bottom:-.1em; height:.1em; border-radius:50%;
+              background:rgb(0 0 0 / .45); filter:blur(.03em); z-index:-1;
+              animation:shadowBob 2.6s ease-in-out infinite }
+@keyframes heroBob{ 50%{ transform:translateY(-.06em) } }
+@keyframes shadowBob{ 50%{ transform:scale(.82); opacity:.6 } }
+.hero-body{ position:absolute; inset:0;
+  background:radial-gradient(circle at 32% 26%, hsl(var(--hh) 75% 80%), hsl(var(--hh) 62% 54%) 52%, hsl(var(--hh) 60% 34%)) }
+.hs-circle{ border-radius:50% }
+.hs-square{ border-radius:22% }
+.hs-diamond{ clip-path:polygon(50% 2%,98% 50%,50% 98%,2% 50%) }
+.hs-hexagon{ clip-path:polygon(25% 4%,75% 4%,98% 50%,75% 96%,25% 96%,2% 50%) }
+.eye{ position:absolute; top:.36em; width:.17em; height:.21em; border-radius:50%; background:#fff;
+      animation:blink 4.2s infinite }
+.eye.l{ left:.24em } .eye.r{ left:.59em }
+.eye::after{ content:''; position:absolute; left:.045em; top:.07em; width:.08em; height:.1em; border-radius:50%; background:#0b1220 }
+@keyframes blink{ 0%,94%,100%{ transform:scaleY(1) } 97%{ transform:scaleY(.1) } }
+.mouth{ position:absolute; left:.38em; top:.64em; width:.24em; height:.09em;
+        border-bottom:.035em solid #0b1220; border-radius:0 0 1em 1em }
+.hero[data-mood="happy"] .eye{ height:.09em; top:.4em; background:transparent; border-top:.04em solid #0b1220; border-radius:50% 50% 0 0; animation:none }
+.hero[data-mood="happy"] .eye::after{ display:none }
+.hero[data-mood="happy"] .mouth{ height:.13em; width:.3em; left:.35em; background:#0b1220; border:0; border-radius:0 0 1em 1em }
+.hero[data-mood="dizzy"]{ animation:dizzy .5s ease }
+.hero[data-mood="dizzy"] .eye{ animation:spin .6s linear infinite; background:transparent; border:.03em solid #fff }
+.hero[data-mood="dizzy"] .eye::after{ display:none }
+.hero[data-mood="dizzy"] .mouth{ height:.07em; width:.07em; left:.465em; border:.03em solid #0b1220; border-radius:50% }
+@keyframes spin{ to{ transform:rotate(360deg) } }
+@keyframes dizzy{ 25%{ transform:rotate(-8deg) } 75%{ transform:rotate(8deg) } }
+/* 액세서리 */
+.acc{ position:absolute; display:block }
+.acc.antenna{ left:.48em; top:-.17em; width:.04em; height:.2em; background:#cfd6e4 }
+.acc.antenna::after{ content:''; position:absolute; left:-.04em; top:-.07em; width:.12em; height:.12em; border-radius:50%;
+                     background:#FFB454; box-shadow:0 0 .1em #FFB454; animation:ping 1.6s ease-in-out infinite }
+@keyframes ping{ 50%{ transform:scale(1.35); opacity:.7 } }
+.acc.hat{ left:.14em; top:-.09em; width:.72em; height:.2em; background:#2b3140;
+          clip-path:polygon(20% 0,80% 0,86% 62%,100% 100%,0 100%,14% 62%) }
+.acc.lens{ right:-.07em; bottom:-.03em; width:.3em; height:.3em; border:.045em solid #e8edf4; border-radius:50%;
+           background:rgb(180 220 255 / .25); transform:rotate(0deg) }
+.acc.lens::after{ content:''; position:absolute; right:-.14em; bottom:-.12em; width:.05em; height:.16em;
+                  background:#e8edf4; transform:rotate(-45deg); border-radius:.02em }
+/* 렌즈(안내 로봇) */
+.npc .hero-body{ background:radial-gradient(circle at 32% 26%,#dfe6f2,#9aa6ba 55%,#5b667b) }
+.ring{ position:absolute; inset:.2em; border-radius:50%; background:#0e1116; box-shadow:0 0 0 .04em #5EE6C5 }
+.pupil{ position:absolute; left:.4em; top:.4em; width:.2em; height:.2em; border-radius:50%;
+        background:radial-gradient(circle at 35% 35%,#c8fff1,#5EE6C5 60%); box-shadow:0 0 .12em #5EE6C5;
+        animation:scan 3.4s ease-in-out infinite }
+@keyframes scan{ 25%{ transform:translate(-.08em,-.03em) } 60%{ transform:translate(.08em,.03em) } }
+.npc .acc.antenna::after{ background:#5EE6C5; box-shadow:0 0 .1em #5EE6C5 }
+
+/* ── 3D 무대 (타이틀 · 결과) ───────────────────────── */
+.pad{ perspective:600px; display:grid; place-items:center; padding:6px 0 2px }
+.pad .tilt{ transform:rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg)); transition:transform .2s ease-out;
+            transform-style:preserve-3d; display:grid; place-items:center; position:relative }
+.pad .tilt::before{ content:''; position:absolute; bottom:-12px; width:150%; height:34px; border-radius:50%;
+  background:radial-gradient(ellipse, hsl(var(--zh) 70% 55% / .45), transparent 70%); transform:translateZ(-20px) }
+#heroLine{ font-weight:700; font-size:15px }
+#heroLine small{ color:var(--accent); font-weight:600; margin-left:6px }
+.linkbtn{ color:var(--ink-dim); font-size:12.5px; text-decoration:underline; text-underline-offset:3px; padding:4px 8px }
+.row2{ display:flex; gap:8px }
+.row2 .btn{ min-width:0; flex:1; padding:13px 10px; font-size:14px }
+.titleBtns{ display:grid; gap:10px; width:min(300px,100%) }
+.titleBtns .btn{ min-width:0 }
+
+/* ── 캐릭터 편집 ───────────────────────────────────── */
+#heroName{ width:min(260px,100%); text-align:center; font:inherit; font-size:17px; font-weight:700; color:var(--ink);
+           background:var(--bg-soft); border:1px solid var(--line); border-radius:12px; padding:11px 12px; user-select:text; -webkit-user-select:text }
+#heroName:focus{ outline:2px solid var(--accent); border-color:transparent }
+.pick{ display:flex; gap:7px; flex-wrap:wrap; justify-content:center; max-width:330px }
+.chip{ padding:8px 13px; border-radius:10px; font-size:13.5px; font-weight:600; color:var(--ink-dim);
+       background:var(--bg-soft); border:1px solid var(--line) }
+.chip[aria-pressed="true"]{ color:#08221C; background:var(--brand); border-color:transparent }
+.chip.swatch{ width:34px; height:34px; padding:0; border-radius:50%;
+              background:radial-gradient(circle at 32% 28%,hsl(var(--hh) 75% 78%),hsl(var(--hh) 62% 48%)) }
+.chip.swatch[aria-pressed="true"]{ outline:3px solid #fff; outline-offset:2px }
+
+/* ── 대사 / 구역 카드 ──────────────────────────────── */
+#zoneCard{ perspective:700px; text-align:center; margin-bottom:6px }
+#zoneCard[hidden]{ display:none }
+#zoneCard .zc{ padding:16px 34px; border-radius:16px; border:1px solid hsl(var(--zh) 60% 45% / .6);
+  background:linear-gradient(150deg,hsl(var(--zh) 55% 20% / .9),hsl(var(--zh) 45% 11% / .9));
+  box-shadow:0 14px 34px -12px hsl(var(--zh) 80% 50% / .5) }
+#zoneCard.flip .zc{ animation:cardFlip .7s cubic-bezier(.2,.9,.3,1.15) }
+@keyframes cardFlip{ from{ transform:rotateX(-80deg) translateZ(-60px); opacity:0 } }
+.zc-k{ font-size:12px; letter-spacing:.3em; color:var(--accent); font-weight:700 }
+.zc-n{ font-size:26px; font-weight:800; margin-top:2px }
+.dlg{ display:flex; gap:12px; align-items:flex-start; width:min(380px,100%); text-align:left }
+#dlgAvatar{ --hs:56px; flex:none; padding-top:6px }
+.bubble{ position:relative; flex:1; background:var(--bg-soft); border:1px solid var(--line); border-radius:16px 16px 16px 4px;
+         padding:12px 14px; min-height:92px }
+.bubble.pop{ animation:bubblePop .22s ease }
+@keyframes bubblePop{ from{ transform:translateY(6px) scale(.97); opacity:.4 } }
+#dlgWho{ font-size:12px; font-weight:700; color:var(--accent); margin-bottom:3px }
+#dlgText{ font-size:15px; line-height:1.65; word-break:keep-all }
+#resultRank{ color:var(--accent); font-weight:700; font-size:14px }
+#resultNpc{ font-size:13px; color:var(--ink-dim); max-width:300px; word-break:keep-all }
+#resultHero{ --hs:64px }
+#titleHero{ --hs:104px }
+#heroPreview{ --hs:112px }
+#heroMini{ --hs:34px }
+#heroMini .hero::after{ display:none }
+
+
+/* ── 움직임 줄이기 ─────────────────────────────────── */
+:root[data-reduced="on"] .hero,:root[data-reduced="on"] .hero::after,:root[data-reduced="on"] body::before,
+:root[data-reduced="on"] .eye,:root[data-reduced="on"] .pupil,:root[data-reduced="on"] .acc::after,
+:root[data-reduced="on"] .cell.is-answer{ animation:none !important }
+:root[data-reduced="on"] #zoneCard.flip .zc,:root[data-reduced="on"] .bubble.pop{ animation:none !important }
+:root[data-reduced="on"]{ transition:none }
+@media (prefers-reduced-motion:reduce){
+  body::before,.hero,.hero::after,.eye,.pupil,.acc::after,.cell.is-answer,#zoneCard.flip .zc,.bubble.pop{ animation:none !important }
+  :root{ transition:none }
+}

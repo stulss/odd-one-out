@@ -9,6 +9,23 @@
 <meta property="og:title" content="딱 하나 이상함">
 <meta property="og:description" content="이 중에 딱 하나만 달라요. 찾을 수 있나요?">
 <meta property="og:type" content="website">
+<meta property="og:site_name" content="딱 하나 이상함">
+<meta property="og:locale" content="ko_KR">
+<meta property="og:url" content="https://odd-one-out-nine.vercel.app/">
+<meta property="og:image" content="https://odd-one-out-nine.vercel.app/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="격자 속에서 하나만 살짝 기울어진 민트색 칸">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="딱 하나 이상함">
+<meta name="twitter:description" content="이 중에 딱 하나만 달라요. 찾을 수 있나요?">
+<meta name="twitter:image" content="https://odd-one-out-nine.vercel.app/og-image.png">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="딱하나">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230E1116'/%3E%3Crect x='5' y='5' width='9' height='9' rx='2' fill='%233D6BFF'/%3E%3Crect x='18' y='5' width='9' height='9' rx='2' fill='%233D6BFF'/%3E%3Crect x='5' y='18' width='9' height='9' rx='2' fill='%233D6BFF'/%3E%3Crect x='18' y='18' width='9' height='9' rx='2' fill='%235EE6C5' transform='rotate(10 22.5 22.5)'/%3E%3C/svg%3E">
 <style>
 :root{
@@ -16,6 +33,11 @@
   --ink:#E8EDF4; --ink-dim:#8A94A6; --ink-faint:#5A6272;
   --brand:#5EE6C5; --warn:#FFB454; --bad:#FF6B6B;
 }
+/* 고대비 — 보조 글씨와 경계선을 더 진하게, 포커스 링을 두껍게 */
+:root[data-contrast="on"]{ --ink-dim:#CBD3E0; --ink-faint:#AEB8C8; --line:#566074 }
+:root[data-contrast="on"] .cell:focus-visible{ outline:4px solid #fff; outline-offset:3px }
+:root[data-contrast="on"] .icon,:root[data-contrast="on"] .btn.ghost{ border:1px solid var(--line) }
+.sr-only{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap }
 *{ box-sizing:border-box; margin:0; padding:0 }
 html,body{ overflow-x:hidden; height:100% }
 body{
@@ -89,13 +111,15 @@ button{ font:inherit; color:inherit; cursor:pointer; border:0; background:none }
 /* ── 오버레이 화면 ────────────────────────────────── */
 .overlay{
   position:absolute; inset:0; z-index:5;
-  display:none; flex-direction:column; align-items:center; justify-content:center;
+  display:none; flex-direction:column; align-items:center; justify-content:safe center;
   gap:14px; padding:24px; text-align:center;
   background:rgba(14,17,22,.94); backdrop-filter:blur(4px);
-  animation:fade .18s ease;
+  animation:fade .18s ease; overflow-y:auto;
 }
 @keyframes fade{ from{ opacity:0 } }
 #app[data-screen="TITLE"]  #screenTitle,
+#app[data-screen="HERO"]   #screenHero,
+#app[data-screen="STORY"]  #screenStory,
 #app[data-screen="PAUSED"] #screenPause,
 #app[data-screen="RESULT"] #screenResult{ display:flex }
 
@@ -109,6 +133,20 @@ h1{ font-size:30px; letter-spacing:-.02em }
       background:var(--brand); color:#08221C; transition:filter .15s }
 .btn:hover{ filter:brightness(1.08) }
 .btn.ghost{ background:var(--bg-soft); color:var(--ink); border:1px solid var(--line) }
+.modes{ display:flex; gap:6px; background:var(--bg-soft); border:1px solid var(--line);
+        border-radius:12px; padding:4px }
+.modes button{ padding:8px 14px; border-radius:9px; font-size:13.5px; font-weight:600; color:var(--ink-dim) }
+.modes button[aria-pressed="true"]{ background:var(--brand); color:#08221C }
+#modeDesc{ font-size:12.5px; color:var(--ink-dim); max-width:300px }
+#practiceAxis{ background:var(--bg-soft); color:var(--ink); border:1px solid var(--line);
+               border-radius:10px; padding:8px 10px; font:inherit; font-size:13.5px }
+#modeBox[hidden],#axisBox[hidden]{ display:none }
+#achList{ display:grid; grid-template-columns:1fr 1fr; gap:6px; list-style:none }
+#achList li{ display:flex; gap:8px; align-items:center; font-size:12.5px; padding:7px 9px;
+             background:var(--bg); border:1px solid var(--line); border-radius:10px; color:var(--ink-faint) }
+#achList li.on{ color:var(--ink); border-color:var(--brand) }
+#achList li small{ display:block; font-size:11px; color:var(--ink-faint) }
+#resultAch{ color:var(--brand); font-size:13px }
 .big{ font-size:76px; font-weight:800; line-height:1; font-variant-numeric:tabular-nums }
 #resultBest{ color:var(--ink-dim); font-size:14px }
 #resultBest.is-best{ color:var(--brand); font-weight:700 }
@@ -139,16 +177,27 @@ pre#logSummary{ font:12px/1.7 ui-monospace,Menlo,Consolas,monospace; color:var(-
 
 @media (min-width:900px){ #board{ gap:10px } h1{ font-size:34px } }
 </style>
+<link rel="stylesheet" href="./src/theme.css">
 </head>
 <body>
 
 <div id="app" data-screen="TITLE">
 
+  <div id="fxLayer" aria-hidden="true"></div>
+  <div id="flash" aria-hidden="true"></div>
+
   <header id="hud">
     <div id="gaugeTrack"><div id="gauge"></div></div>
     <div id="hudRow">
-      <span class="k">STAGE</span><b id="stageNo">1</b>
-      <span class="k">SCORE</span><b id="points">0</b>
+      <div id="heroMini" aria-hidden="true"></div>
+      <div class="hudCol">
+        <span class="k" id="zoneName">ZONE 1 · 수습 훈련실</span>
+        <span class="hudStat">
+          <span class="k">STAGE</span><b id="stageNo">1</b>
+          <span class="k">SCORE</span><b id="points">0</b>
+        </span>
+      </div>
+      <span id="comboChip" hidden>🔥 x2</span>
       <span class="sp">
         <button class="icon" id="btnPause" type="button" title="일시정지 (P)" aria-label="일시정지">❙❙</button>
         <button class="icon" id="btnSettings" type="button" title="설정" aria-label="설정">⚙</button>
@@ -168,18 +217,54 @@ pre#logSummary{ font:12px/1.7 ui-monospace,Menlo,Consolas,monospace; color:var(-
 
   <!-- ── TITLE ── -->
   <section class="overlay" id="screenTitle">
+    <div class="pad" id="titlePad"><div class="tilt" id="titleTilt"><div id="titleHero"></div></div></div>
+    <div id="heroLine"></div>
     <h1>딱 하나 이상함</h1>
     <div class="sub" id="challengeLabel">자유 플레이</div>
-    <div class="rules">
-      <b>여러 개 중 딱 하나만 다릅니다.</b><br>
-      제한 시간 안에 다른 하나를 찾아 누르세요.<br>
-      맞히면 다음 단계, 시간이 0이 되면 종료됩니다.<br>
-      오답을 누르면 남은 시간이 1초 줄어듭니다.
-    </div>
     <div id="rivalBanner" hidden></div>
-    <button class="btn" id="btnStart" type="button">▶ 시작하기</button>
-    <button class="btn ghost" id="btnDaily" type="button">오늘의 문제</button>
+    <div id="modeBox" style="display:grid;gap:8px;justify-items:center">
+      <div class="modes" role="group" aria-label="게임 모드">
+        <button type="button" data-mode="normal"   aria-pressed="true">일반</button>
+        <button type="button" data-mode="blitz"    aria-pressed="false">30초 도전</button>
+        <button type="button" data-mode="practice" aria-pressed="false">연습</button>
+      </div>
+      <div id="modeDesc"></div>
+      <div id="axisBox" hidden><label for="practiceAxis" class="sub">연습할 차이&nbsp;</label>
+        <select id="practiceAxis"></select></div>
+    </div>
+    <div class="titleBtns">
+      <button class="btn" id="btnStart" type="button">▶ 시작하기</button>
+      <div class="row2">
+        <button class="btn ghost" id="btnDaily" type="button">오늘의 문제</button>
+        <button class="btn ghost" id="btnTitleSettings" type="button">설정 · 업적</button>
+      </div>
+    </div>
+    <button class="linkbtn" id="btnHeroEdit" type="button">캐릭터 바꾸기</button>
     <div class="sub" id="bestLine">아직 기록이 없습니다</div>
+    <div class="hint">여러 개 중 딱 하나만 다릅니다 · 오답은 시간 −1초</div>
+  </section>
+
+  <!-- ── HERO (캐릭터 만들기) ── -->
+  <section class="overlay" id="screenHero">
+    <h1>감별사 등록</h1>
+    <div class="sub">이름과 모습을 정해 주세요</div>
+    <div class="pad"><div class="tilt"><div id="heroPreview"></div></div></div>
+    <input id="heroName" type="text" maxlength="8" placeholder="이름 (최대 8자)" autocomplete="off" aria-label="이름">
+    <div class="pick" id="pickShape" role="group" aria-label="몸 모양"></div>
+    <div class="pick" id="pickHue" role="group" aria-label="색"></div>
+    <div class="pick" id="pickAcc" role="group" aria-label="액세서리"></div>
+    <button class="btn" id="btnHeroOk" type="button">등록 완료</button>
+    <button class="btn ghost" id="btnHeroCancel" type="button" hidden>취소</button>
+  </section>
+
+  <!-- ── STORY (대사 · 구역 소개) ── -->
+  <section class="overlay" id="screenStory">
+    <div id="zoneCard" hidden><div class="zc"><div class="zc-k" id="zoneK">ZONE 1</div><div class="zc-n" id="zoneN"></div></div></div>
+    <div class="dlg">
+      <div id="dlgAvatar"></div>
+      <div class="bubble"><div id="dlgWho"></div><p id="dlgText" aria-live="polite"></p></div>
+    </div>
+    <button class="btn" id="btnStoryNext" type="button">다음 ▶</button>
   </section>
 
   <!-- ── PAUSE ── -->
@@ -192,11 +277,15 @@ pre#logSummary{ font:12px/1.7 ui-monospace,Menlo,Consolas,monospace; color:var(-
 
   <!-- ── RESULT ── -->
   <section class="overlay" id="screenResult">
+    <div class="pad"><div class="tilt" id="resultTilt"><div id="resultHero"></div></div></div>
     <div class="sub" id="resultTitle">실패 — 시간 초과</div>
     <div class="big" id="resultStages">0</div>
     <div class="sub">단계</div>
     <div id="resultBest">최고 0단계</div>
     <div class="sub" id="resultSub"></div>
+    <div id="resultRank"></div>
+    <div id="resultNpc"></div>
+    <div id="resultAch" role="status"></div>
     <canvas id="cardCanvas" aria-label="결과 카드 미리보기"></canvas>
     <button class="btn" id="btnRestart" type="button">다시 하기</button>
     <button class="btn ghost" id="btnShare" type="button">결과 공유</button>
@@ -218,6 +307,12 @@ pre#logSummary{ font:12px/1.7 ui-monospace,Menlo,Consolas,monospace; color:var(-
       <input type="range" id="tuneOut2" min="2.6" max="5.4" step="0.2" value="4.4"></div>
     <div class="hint">T가 클수록 단계마다 <b>차이가 빨리 미묘해집니다</b>. 난이도에 영향을 주는 값은 이 하나뿐입니다.<br>
       (제한 시간은 고정 — 판을 끝내는 것은 시간 부족이 아니라 차이를 못 찾는 것이기 때문)</div>
+    <div class="row"><label for="optColor">색 구분 보조 (색조·채도 차이를 밝기 차이로 표시)</label>
+      <input type="checkbox" id="optColor"></div>
+    <div class="row"><label for="optContrast">고대비 (글씨·경계선 진하게)</label>
+      <input type="checkbox" id="optContrast"></div>
+    <div class="row"><label>업적 <span id="achCount">0/0</span></label></div>
+    <ul id="achList"></ul>
     <div class="row"><label>기록한 판 수</label><b id="logCount">0</b></div>
     <pre id="logSummary">아직 기록이 없습니다</pre>
     <div class="row" style="gap:8px">
@@ -228,6 +323,7 @@ pre#logSummary{ font:12px/1.7 ui-monospace,Menlo,Consolas,monospace; color:var(-
   </section>
 
   <div id="toast" role="status" aria-live="polite"></div>
+  <div id="srLive" class="sr-only" aria-live="polite"></div>
 </div>
 
 <script type="module" src="./src/main.js"></script>

@@ -9,7 +9,13 @@ export const DEFAULT = {
   daily:  { lastKey: null, bestStages: 0 },
   stats:  { played: 0, totalStages: 0, totalTimeMs: 0 },
   streak: { count: 0, lastPlayDate: null },
-  settings: { sound: true, reducedMotion: false, tuneT: 4.4 },
+  settings: { sound: true, reducedMotion: false, tuneT: 4.4, colorSafe: false, highContrast: false },
+  hero:   { name: '', shape: 'circle', hue: 160, acc: 'none' },   // 캐릭터 (name이 비어 있으면 첫 실행)
+  prologue: false,                 // 프롤로그를 본 적이 있는가
+  mode: 'normal',                  // 마지막에 고른 모드: normal | practice | blitz
+  practiceAxis: '',                // 연습 모드에서 고정할 차이 축 ('' = 무작위)
+  bestBlitz: 0,                    // 30초 도전 최고 단계
+  ach: '',                         // 달성한 업적 id (쉼표 구분)
 };
 
 let memory = null;          // localStorage를 못 쓰는 환경(프라이빗 모드 등)의 폴백

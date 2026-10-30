@@ -39,8 +39,9 @@ export const T_BASE = 4.4;
  * @param n       스테이지 번호 (1부터)
  * @param tuneT   난이도 상수 — 이 값 하나만 조정한다 (과제 카드 3)
  * @param prev    직전 스테이지 (정답 위치 연속 중복 방지)
+ * @param forceAxis 연습 모드에서 축을 고정할 때만 쓴다 (난수 소비는 그대로라 나머지 값은 변하지 않는다)
  */
-export function makeStage(rootKey, n, tuneT, prev){
+export function makeStage(rootKey, n, tuneT, prev, forceAxis){
   const rnd  = stageRng(rootKey, n);
   const t    = Math.min((n - 1) / 40, 1);
   const ease = t * t * (3 - 2 * t);                 // 초반 완만, 후반 급격
@@ -48,7 +49,8 @@ export function makeStage(rootKey, n, tuneT, prev){
   const g     = GRIDS[Math.min(n - 1, GRIDS.length - 1)];
   const total = g.c * g.r;
 
-  const axis = AXIS_IDS[Math.floor(rnd() * AXIS_IDS.length)];
+  const picked = AXIS_IDS[Math.floor(rnd() * AXIS_IDS.length)];
+  const axis = DIFF_AXES[forceAxis] ? forceAxis : picked;
   const spec = DIFF_AXES[axis];
 
   // ── 난이도 손잡이를 '차이 곡선'에 건다 ────────────────────────
