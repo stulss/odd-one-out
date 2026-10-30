@@ -98,7 +98,41 @@ export function createFx(t: FxTargets) {
     ], { duration: 240, easing: 'cubic-bezier(.2,.9,.3,1.05)' });
   }
 
-  return { burst, shake, pulse, boardIn };
+  /** 칸 위로 떠오르는 글씨 (+점수, FAST! 같은 즉각적인 보상 표시) */
+  function popText(anchor: Element | undefined, text: string, color = '#fff', big = false) {
+    if (!motionEnabled() || !anchor || alive >= MAX_PARTICLES) return;
+    const a = t.app.getBoundingClientRect();
+    const r = anchor.getBoundingClientRect();
+    const el = document.createElement('span');
+    el.className = 'fx-text' + (big ? ' big' : '');
+    el.textContent = text;
+    el.style.cssText = `left:${r.left - a.left + r.width / 2}px;top:${r.top - a.top + r.height * 0.3}px;color:${color}`;
+    t.layer.appendChild(el);
+    alive++;
+    el.animate([
+      { transform: 'translate(-50%,0) scale(.5)', opacity: 0 },
+      { transform: 'translate(-50%,-14px) scale(1.25)', opacity: 1, offset: 0.25 },
+      { transform: 'translate(-50%,-52px) scale(1)', opacity: 0 },
+    ], { duration: big ? 900 : 700, easing: 'ease-out' }).onfinish = () => { el.remove(); alive--; };
+  }
+
+  /** 화면 가운데에 크게 터지는 글씨 (COMBO, 번개 판 시작 등) */
+  function banner(text: string, color = '#ffd75e') {
+    if (!motionEnabled()) return;
+    const el = document.createElement('div');
+    el.className = 'fx-banner';
+    el.textContent = text;
+    el.style.color = color;
+    t.layer.appendChild(el);
+    el.animate([
+      { transform: 'translate(-50%,-50%) scale(2.2)', opacity: 0 },
+      { transform: 'translate(-50%,-50%) scale(1)', opacity: 1, offset: 0.2 },
+      { transform: 'translate(-50%,-50%) scale(1)', opacity: 1, offset: 0.7 },
+      { transform: 'translate(-50%,-62%) scale(.9)', opacity: 0 },
+    ], { duration: 1100, easing: 'cubic-bezier(.2,.9,.3,1)' }).onfinish = () => el.remove();
+  }
+
+  return { burst, shake, pulse, boardIn, popText, banner };
 }
 
 export type Fx = ReturnType<typeof createFx>;

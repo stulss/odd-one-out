@@ -67,6 +67,19 @@ export function App() {
           mark(e.index, 'is-correct');
           fx.burst(board.children[e.index], e.power, e.hue);
           if (e.milestone) { fx.shake(0.35); fx.pulse('rgb(255 180 84)', 0.45); }
+          {
+            const cell = board.children[e.index];
+            fx.popText(cell, `+${e.gain}`, e.coins ? '#ffd75e' : '#fff');
+            if (e.coins) window.setTimeout(() => fx.popText(cell, `🪙+${e.coins}`, '#ffd75e', true), 120);
+            else if (e.fast) window.setTimeout(() => fx.popText(cell, 'FAST!', '#5EE6C5', true), 120);
+            if (e.combo === 3 || e.combo === 5 || e.combo === 8 || e.combo === 10 || (e.combo > 10 && e.combo % 5 === 0)) {
+              fx.banner(`COMBO x${e.combo}!`, e.combo >= 10 ? '#ff8a4c' : '#ffd75e');
+            }
+          }
+          break;
+        case 'modifier':
+          fx.banner(e.mod === 'rush' ? '⚡ 번개 판!' : '🌟 황금 판!', e.mod === 'rush' ? '#ff6b6b' : '#ffd75e');
+          fx.pulse(e.mod === 'rush' ? 'rgb(255 80 80)' : 'rgb(255 215 94)', 0.5);
           break;
         case 'wrong':
           mark(e.index, 'is-wrong');

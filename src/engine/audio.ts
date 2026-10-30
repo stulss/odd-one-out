@@ -39,8 +39,29 @@ function tone(freq: number, dur: number, type: OscillatorType = 'sine', gain = 0
   } catch { /* 소리는 실패해도 게임을 막지 않는다 */ }
 }
 
+/** 효과음이 쓰는 오디오 컨텍스트 (배경음악이 같은 것을 쓴다). 첫 사용자 입력 전에는 null */
+export const audioCtx = () => ctx;
+
+// 정답 효과음은 콤보가 쌓일수록 펜타토닉 음계를 타고 올라간다 — 연속으로 맞히는 것 자체가 멜로디가 된다
+const LADDER = [0, 2, 4, 7, 9, 12, 14, 16, 19, 21, 24];
+
 export const sfx = {
-  correct() { tone(660, 0.12, 'sine', 0.07, 990); },
+  correct(combo = 1) {
+    const semi = LADDER[Math.min(Math.max(combo, 1) - 1, LADDER.length - 1)];
+    const f = 523 * Math.pow(2, semi / 12);
+    tone(f, 0.13, 'sine', 0.07, f * 1.5);
+    if (combo >= 5) setTimeout(() => tone(f * 2, 0.1, 'triangle', 0.04), 60);
+  },
+  /** 콤보 5·10 달성 — 짧은 팡파르 */
+  combo() { [784, 988, 1175].forEach((f, i) => setTimeout(() => tone(f, 0.12, 'triangle', 0.07), i * 70)); },
+  /** 황금 판 정답 — 동전 소리 */
+  coin() { tone(1319, 0.08, 'square', 0.04); setTimeout(() => tone(1760, 0.18, 'square', 0.04), 70); },
+  /** 번개 판 시작 — 긴박한 두 번 */
+  rush() { tone(880, 0.07, 'square', 0.05); setTimeout(() => tone(1175, 0.1, 'square', 0.05), 90); },
+  /** 시계 아이템 */
+  clock() { tone(440, 0.2, 'sine', 0.06, 880); },
+  /** 제한 시간이 얼마 안 남았을 때 */
+  tick() { tone(1000, 0.04, 'square', 0.03); },
   wrong() { tone(180, 0.18, 'square', 0.05, 120); },
   over() { tone(320, 0.5, 'triangle', 0.07, 90); },
   best() { tone(880, 0.1, 'sine', 0.07); setTimeout(() => tone(1320, 0.18, 'sine', 0.06), 110); },

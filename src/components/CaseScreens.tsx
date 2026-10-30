@@ -17,13 +17,13 @@ const Stars = ({ n, big = false }: { n: number; big?: boolean }) => (
 
 const Wallet = () => {
   const { store } = useSnapshot();
-  return <div className="wallet" aria-label="보유 재화"><span>🪙 {store.coins}</span><span>💡 {store.hints}</span></div>;
+  return <div className="wallet" aria-label="보유 재화"><span>🪙 {store.coins}</span><span>💡 {store.hints}</span><span>⏱ {store.clocks}</span></div>;
 };
 
 /* ───────── 사건 지도 ───────── */
 export function MapScreen() {
   const engine = useEngine();
-  const { store } = useSnapshot();
+  const { store, missions } = useSnapshot();
   const curRef = useRef<HTMLButtonElement>(null);
   const cur = currentCase(store);
 
@@ -39,6 +39,20 @@ export function MapScreen() {
       </div>
       <h1>감별 사건부</h1>
       <div className="sub" id="mapSummary">해결 {clearedCount(store)}/{TOTAL_CASES} · 별 {totalStars(store)}/{TOTAL_CASES * MAX_STARS}</div>
+      <div className="missions" id="missions">
+        <div className="missionsHead">🎯 오늘의 임무</div>
+        {missions.map(m => (
+          <div className={'mission' + (m.done ? ' done' : '')} key={m.idx} data-mission={m.idx}>
+            <div className="mText"><span>{m.label}</span>
+              <div className="mBar"><i style={{ width: `${(m.cur / m.goal) * 100}%` }} /></div>
+            </div>
+            <span className="mProg">{m.cur}/{m.goal}</span>
+            {m.claimed
+              ? <span className="mDone">✓</span>
+              : <button className="mClaim" type="button" disabled={!m.done} onClick={() => engine.claimMission(m.idx)}>🪙 {m.reward}</button>}
+          </div>
+        ))}
+      </div>
       <div className="mapScroll">
         {zones.map(z => (
           <div className="zoneBlock" key={z} style={{ '--zh': zoneHue(z), '--i': z } as CSSProperties}>
@@ -92,7 +106,7 @@ export function CaseResultScreen() {
         {r.success && r.avgReaction != null && <span>평균 {r.avgReaction.toFixed(2)}초</span>}
         {r.success && r.stars < MAX_STARS && <span className="hintText">{r.stars === 1 ? '오답 1회 이하면 ★2' : '오답 없이 빠르게 풀면 ★3'}</span>}
       </div>
-      {r.success && <div className="crCoins" id="crCoins">🪙 +{r.coins}{r.firstClear ? ' (첫 해결 보너스 포함)' : ''}</div>}
+      {r.success && <div className="crCoins" id="crCoins">🪙 +{r.coins}{r.firstClear ? ' (첫 해결 보너스 포함)' : ''}{r.bonus ? ` · 번개·황금 판 +${r.bonus}` : ''}</div>}
       {r.unlockText && <div className="crUnlock" id="crUnlock">🎁 {r.unlockText}</div>}
       {r.promoted && <div className="crUnlock">▲ 감별사 등급이 올랐어요!</div>}
       <div id="resultNpc">렌즈: “{r.npc}”</div>
@@ -137,6 +151,10 @@ export function CodexScreen() {
         <div className="shopRow">
           <span>💡 힌트 {HINT_PACK}개<small> 사건에서 정답 칸을 비춰 줘요</small></span>
           <button className="btn" id="btnBuyHints" type="button" onClick={() => engine.buyHints()}>🪙 {HINT_PRICE}</button>
+        </div>
+        <div className="shopRow">
+          <span>⏱ 시계 2개<small> 지금 라운드의 시간을 5초 늘려요 (C 키)</small></span>
+          <button className="btn" id="btnBuyClocks" type="button" onClick={() => engine.buyClocks()}>🪙 25</button>
         </div>
         <div className="hint">소품·옷색은 ‘캐릭터 바꾸기’에서, 새 복장은 구역 마지막 사건을 해결하면 얻어요.</div>
       </div>

@@ -20,6 +20,10 @@ import {
 import { PROLOGUE, zoneOf, rankOf, tierOf, closingLine, fill, type DialogLine } from './story';
 import { JOBS, normalizeHero } from './heroData';
 import { bossOf, type BossDef } from './bosses';
+import { Music } from './music';
+import { MODS, rollModifier, type ModId } from './modifiers';
+import * as Missions from './missions';
+import type { Mission } from './missions';
 import {
   CASES, FINALE_COINS, FINALE_JOB, HINT_PACK, HINT_PRICE, addCodex, campaignTier, caseCoins, enforceUnlocks,
   heroTier, isCaseUnlocked, isUnlocked, migrateUnlocked, priceOf, rateCase, setStars, starsOf, unlock, zoneHue, type UnlockKind,
@@ -44,6 +48,7 @@ interface Run {
   startedAt: number; stage: Stage | null; prev: Stage | null;
   stageStart: number; pausedAt: number; mode: Mode;
   caseIdx: number; round: number; rootKey: string; ratios: number[]; // 사건부 전용
+  mod: ModId | null; bonus: number; // 이번 라운드의 변주 / 변주로 모은 보너스 코인
 }
 
 export interface DialogRequest {
@@ -71,7 +76,7 @@ export interface CaseResultInfo {
   idx: number; title: string; success: boolean;
   stars: number; prevStars: number; coins: number; firstClear: boolean;
   wrongs: number; avgReaction: number | null; roundsDone: number; rounds: number;
-  unlockText: string; ach: string; hasNext: boolean; tier: number; promoted: boolean; npc: string;
+  unlockText: string; ach: string; hasNext: boolean; tier: number; promoted: boolean; npc: string; bonus: number;
 }
 
 export interface ResultInfo {
@@ -103,6 +108,8 @@ export interface Snapshot {
   caseResult: CaseResultInfo | null;
   hintIndex: number | null; // 힌트로 비추는 칸
   boss: BossInfo | null; // 보스전 중일 때만
+  modifier: ModId | null; // 이번 라운드의 변주 (사건부)
+  missions: Mission[]; // 오늘의 임무
   fallback: { visible: boolean; text: string; url: string };
   toast: { id: number; msg: string } | null;
   announce: { id: number; msg: string };
@@ -110,7 +117,8 @@ export interface Snapshot {
 }
 
 export type FxEvent =
-  | { type: 'correct'; index: number; power: number; hue: number; milestone: boolean }
+  | { type: 'correct'; index: number; power: number; hue: number; milestone: boolean; gain: number; fast: boolean; combo: number; coins: number }
+  | { type: 'modifier'; mod: ModId }
   | { type: 'wrong'; index: number }
   | { type: 'over' }
   | { type: 'stage' }
@@ -140,6 +148,7 @@ export function createEngine() {
   let caseResult: CaseResultInfo | null = null;
   let hintIndex: number | null = null;
   let hintTimer = 0;
+  let lastTickSec = -1;
   let bossHp = 0, bossHit = 0, bossTaunt: BossInfo['taunt'] = null, tauntTimer = 0;
   let codexBack: Screen = 'TITLE';
   let cardBlob: Blob | null = null;
@@ -155,7 +164,7 @@ export function createEngine() {
     n: 1, points: 0, combo: 0, maxCombo: 0,
     reactions: [], wrongs: 0, wrongStreak: 0,
     startedAt: 0, stage: null, prev: null, stageStart: 0, pausedAt: 0, mode: 'normal',
-    caseIdx: -1, round: 1, rootKey: '', ratios: [],
+    caseIdx: -1, round: 1, rootKey: '', ratios: [], mod: null, bonus: 0,
   });
   let run = freshRun();
 
@@ -190,7 +199,7 @@ export function createEngine() {
     return {
       screen, store, challenge, stage: run.stage, stageId,
       n: run.n, points: run.points, combo: run.combo, mode: run.mode,
-      mood, themeHue, dialog, result, caseRun: caseRunInfo(), caseResult, hintIndex, boss: bossInfo(), fallback, toast: toastState, announce: announceState,
+      mood, themeHue, dialog, result, caseRun: caseRunInfo(), caseResult, hintIndex, boss: bossInfo(), modifier: run.mode === 'case' ? run.mod : null, missions: Missions.list(store, todayKeyKST()), fallback, toast: toastState, announce: announceState,
       log: {
         count: logRows.length,
         lines: Log.summary().map(g => `T=${g.tuneT}: ${g.n}회 · 중앙값 ${g.medianStages}단계 / ${g.medianSurvivalSec}초`),
@@ -198,13 +207,23 @@ export function createEngine() {
     };
   }
   function emit() {
+    syncMusic();
     snapshot = build();
     listeners.forEach(l => l());
   }
   const fx = (e: FxEvent) => fxListeners.forEach(l => l(e));
 
   const timer: Timer = createTimer({
-    onTick: (left, limit) => tickListeners.forEach(l => l(left, limit)),
+    onTick: (left, limit) => {
+      tickListeners.forEach(l => l(left, limit));
+      if (run.mode === 'practice') return;
+      // 제한 시간이 줄수록 음악이 긴박해지고, 마지막 3초는 초침 소리가 난다
+      const r = left / limit;
+      const boss = run.mode === 'case' && run.caseIdx >= 0 && !!bossOf(CASES[run.caseIdx].id);
+      Music.setIntensity(Math.max(r < 0.35 ? 1 - r / 0.35 : 0, boss ? 0.3 : 0));
+      const sec = Math.ceil(left);
+      if (left <= 3 && left > 0 && sec !== lastTickSec) { lastTickSec = sec; Audio.sfx.tick(); }
+    },
     onZero: () => gameOver('timeout'),
   });
 
@@ -241,16 +260,24 @@ export function createEngine() {
   }
 
   function nextStage() {
-    const s = makeStage(run.mode === 'case' ? run.rootKey : challenge.rootKey, run.n, store.settings.tuneT, run.prev,
+    const base = makeStage(run.mode === 'case' ? run.rootKey : challenge.rootKey, run.n, store.settings.tuneT, run.prev,
       run.mode === 'practice' ? store.practiceAxis : undefined);
+    run.mod = null;
+    lastTickSec = -1;
+    if (run.mode === 'case') { // 사건부: 일부 라운드에 변주 (시간·보상만 바뀌고 퍼즐은 그대로)
+      const def = CASES[run.caseIdx];
+      run.mod = rollModifier(run.rootKey, run.round, def.rounds, !!bossOf(def.id), def.id);
+    }
+    const s: Stage = run.mod ? { ...base, timeLimit: base.timeLimit * MODS[run.mod].timeMul } : base;
     run.stage = s;
     run.prev = s;
     run.stageStart = performance.now();
     stageId++;
     themeHue = run.mode === 'case' ? zoneHue(CASES[run.caseIdx].zone) : zoneOf(run.n).hue;
     hintIndex = null;
-    announce(run.mode === 'case' ? `라운드 ${run.round}` : `단계 ${run.n}`);
+    announce(run.mode === 'case' ? `라운드 ${run.round}${run.mod ? ' · ' + MODS[run.mod].label : ''}` : `단계 ${run.n}`);
     fx({ type: 'stage' });
+    if (run.mod) { fx({ type: 'modifier', mod: run.mod }); if (run.mod === 'rush') Audio.sfx.rush(); }
 
     // 일반 모드에서 새 구역에 들어서면 이야기를 먼저 보여 준다. 소개가 끝나야 타이머가 돈다.
     const z = zoneOf(run.n);
@@ -293,10 +320,23 @@ export function createEngine() {
       run.combo++;
       run.maxCombo = Math.max(run.maxCombo, run.combo);
       run.wrongStreak = 0;
-      run.points += scoreOf(s, elapsed, run.combo);
-      Audio.sfx.correct();
+      const gain = scoreOf(s, elapsed, run.combo);
+      run.points += gain;
+      Audio.sfx.correct(run.combo); // 콤보가 쌓일수록 음이 올라간다
       const power = run.combo >= 10 ? 3 : run.combo >= 5 ? 2 : 1; // 콤보가 쌓일수록 연출이 커진다
-      fx({ type: 'correct', index: i, power, hue: s.hue, milestone: run.combo === 5 || run.combo === 10 });
+      const milestone = run.combo === 5 || run.combo === 10;
+      if (milestone) Audio.sfx.combo();
+      Audio.vibrate(milestone ? 24 : 8);
+      const today = todayKeyKST();
+      let coins = 0;
+      if (run.mode === 'case' && run.mod) { // 변주 라운드의 정답 보상
+        coins = MODS[run.mod].coins;
+        run.bonus += coins;
+        Audio.sfx.coin();
+        Missions.bump(store, today, run.mod);
+      }
+      if (run.mode !== 'practice') { Missions.bump(store, today, 'finds'); Missions.bump(store, today, 'combo', run.combo); }
+      fx({ type: 'correct', index: i, power, hue: s.hue, milestone, gain, fast: elapsed / s.timeLimit < 0.3, combo: run.combo, coins });
       setMood('happy');
       if (run.mode !== 'practice') { // 도감: 찾은 물건을 센다 (마일스톤을 넘으면 코인 보상)
         const bonus = addCodex(store, s.kind);
@@ -595,7 +635,10 @@ export function createEngine() {
       const job = FINALE_JOB[def.id];
       if (job && !isUnlocked(store, 'job', job)) { unlock(store, 'job', job); unlockText = `새 복장 해금: ${jobLabel(job)}`; }
       if (def.id === CASES.length && firstClear) { coins += FINALE_COINS; unlockText = (unlockText ? unlockText + ' · ' : '') + '모든 사건 해결! 보너스 코인 +' + FINALE_COINS; }
+      coins += run.bonus; // 번개·황금 판 보너스
       store.coins += coins;
+      Missions.bump(store, todayKeyKST(), 'cases');
+      if (stars === 3) Missions.bump(store, todayKeyKST(), 'star3');
       Audio.sfx.best();
     } else {
       Audio.sfx.over();
@@ -615,7 +658,7 @@ export function createEngine() {
 
     const tier = heroTier(store);
     caseResult = {
-      idx, title: def.title, success, stars, prevStars, coins, firstClear,
+      idx, title: def.title, success, stars, prevStars, coins, firstClear, bonus: success ? run.bonus : 0,
       wrongs: run.wrongs, avgReaction, roundsDone: success ? def.rounds : run.round - 1, rounds: def.rounds,
       unlockText, ach: unlocked.length ? '🏆 업적 달성: ' + unlocked.map(a => a.name).join(', ') : '',
       hasNext: success && idx + 1 < CASES.length, tier, promoted: success && campaignTier(store) > prevTierC,
@@ -698,6 +741,54 @@ export function createEngine() {
   /** 해금 안 된 값이 섞인 캐릭터를 쓸 수 있는 값으로 되돌린다 */
   const allowedHero = (h: Hero): Hero => enforceUnlocks(store, normalizeHero(h));
 
+  // ── 배경음악 · 시계 아이템 · 임무 ─────────────────────────────
+  const CLOCK_PRICE = 25, CLOCK_PACK = 2;
+
+  /** 화면에 맞는 곡을 튼다. 게임 중에는 구역(보스전은 보스 곡), 그 밖에는 메뉴 곡. */
+  function syncMusic() {
+    const on = store.settings.sound && store.settings.music;
+    Music.setEnabled(on);
+    if (!on) return;
+    const playing = screen === 'PLAY' || screen === 'PAUSED' || (screen === 'STORY' && !!run.stage);
+    if (playing) {
+      const caseDef = run.mode === 'case' && run.caseIdx >= 0 ? CASES[run.caseIdx] : null;
+      Music.play(caseDef ? (bossOf(caseDef.id) ? 'boss' : caseDef.zone) : zoneOf(run.n).idx);
+      Music.duck(screen !== 'PLAY');
+    } else {
+      Music.play('menu');
+      Music.setIntensity(0);
+      Music.duck(false);
+    }
+  }
+
+  /** 시계: 지금 라운드의 시간을 5초 늘린다 */
+  function useClock() {
+    if (screen !== 'PLAY' || (run.mode !== 'case' && run.mode !== 'normal') || !run.stage) return;
+    if (store.clocks <= 0) { toast('시계가 없어요. 도감·상점에서 살 수 있어요'); return; }
+    store.clocks--;
+    store = Save.save(store);
+    timer.penalty(-5);
+    Audio.sfx.clock();
+    toast('⏱ 시간 +5초');
+  }
+
+  function buyClocks() {
+    if (store.coins < CLOCK_PRICE) { toast('코인이 부족해요'); return; }
+    store.coins -= CLOCK_PRICE;
+    store.clocks += CLOCK_PACK;
+    store = Save.save(store);
+    toast(`⏱ 시계 ${CLOCK_PACK}개를 샀어요`);
+  }
+
+  function claimMission(i: number) {
+    const c = Missions.claim(store, todayKeyKST(), i);
+    if (!c) return;
+    store.coins += c;
+    store = Save.save(store);
+    Audio.sfx.coin();
+    toast(`🎯 임무 보상 +${c}코인`);
+  }
+
   // ── 포커스 이탈 / 탭 전환 시 부당한 실패 방지 (과제 카드 2) ───
   const onVisibility = () => { if (document.hidden) autoPause(); };
   function attach(): () => void {
@@ -712,6 +803,15 @@ export function createEngine() {
 
   function boot() {
     applySettings();
+    // 출석 보상 + 오늘의 임무 초기화
+    const today = todayKeyKST();
+    Missions.ensure(store, today);
+    const b = Missions.loginBonus(store, today);
+    if (b.coins) {
+      store.coins += b.coins;
+      toastState = { id: ++seq, msg: `📅 출석 보상 +${b.coins}코인 (${b.streak}일 연속)` };
+    }
+    store = Save.save(store);
     show(store.hero.name ? 'TITLE' : 'HERO'); // 첫 실행: 캐릭터부터 만든다
     emit();
   }
@@ -734,7 +834,8 @@ export function createEngine() {
     copyShareUrl: () => Share.copy(fallback.url, toast),
     saveCard: () => Share.saveImage(cardBlob, toast),
     copyText: (s: string) => Share.copy(s, toast),
-    unlock: Audio.unlock,
+    unlock: () => { Audio.unlock(); syncMusic(); },
+    useClock, buyClocks, claimMission,
     achievements: () => ({ list: ACHIEVEMENTS, have: owned(store) }),
     // 개발·검증용 — 배포본에서도 해가 없다 (개인정보 없음)
     get run() { return run; },

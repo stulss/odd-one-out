@@ -51,6 +51,7 @@ export function Board({ stageAreaRef, boardRef }: Props) {
       const k = e.key;
       if (k === 'p' || k === 'P' || k === 'Escape') { e.preventDefault(); engine.togglePause(); return; }
       if (k === 'h' || k === 'H') { engine.useHint(); return; }
+      if (k === 'c' || k === 'C') { engine.useClock(); return; }
 
       const s = engine.getSnapshot();
       const board = boardRef.current;

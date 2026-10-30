@@ -10,6 +10,8 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
     <section id="settings" aria-label="설정">
       <div className="row"><label htmlFor="optSound">소리</label>
         <input type="checkbox" id="optSound" checked={s.sound} onChange={e => engine.setSetting('sound', e.target.checked)} /></div>
+      <div className="row"><label htmlFor="optMusic">배경음악</label>
+        <input type="checkbox" id="optMusic" checked={s.music} onChange={e => engine.setSetting('music', e.target.checked)} /></div>
       <div className="row"><label htmlFor="optMotion">움직임 줄이기</label>
         <input type="checkbox" id="optMotion" checked={s.reducedMotion} onChange={e => engine.setSetting('reducedMotion', e.target.checked)} /></div>
       <div className="row"><label htmlFor="tuneOut2">난이도 T = <span id="tuneOut">{s.tuneT.toFixed(1)}</span></label>

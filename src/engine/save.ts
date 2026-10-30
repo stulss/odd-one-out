@@ -24,12 +24,15 @@ export interface Store {
   daily: { lastKey: string | null; bestStages: number };
   stats: { played: number; totalStages: number; totalTimeMs: number };
   streak: { count: number; lastPlayDate: string | null };
-  settings: { sound: boolean; reducedMotion: boolean; tuneT: number; colorSafe: boolean; highContrast: boolean; hero3d: boolean };
+  settings: { sound: boolean; reducedMotion: boolean; tuneT: number; colorSafe: boolean; highContrast: boolean; hero3d: boolean; music: boolean };
   hero: Hero; // name이 비어 있으면 첫 실행
   prologue: boolean; // 프롤로그를 본 적이 있는가
   mode: Mode; // 마지막에 고른 모드
   coins: number; // 감별 코인 (소품·옷색·힌트에 쓴다)
   hints: number; // 보유 힌트 수 (사건에서 정답 칸을 한 번 비춘다)
+  clocks: number; // 보유 시계 수 (현재 라운드 시간을 5초 늘린다)
+  missions: { date: string; p: string; c: string }; // 오늘의 임무 진행도·수령 여부 (missions.ts)
+  login: { date: string; streak: number }; // 출석 보상
   campaign: { stars: string }; // 사건별 별 수를 한 줄로: '3210…' (campaign.ts)
   codex: string; // 물건별 발견 횟수, 쉼표 구분
   unlocked: string; // 해금한 복장·소품·옷색 (예: 'job:mage,acc:staff')
@@ -44,12 +47,15 @@ export const DEFAULT: Store = {
   daily: { lastKey: null, bestStages: 0 },
   stats: { played: 0, totalStages: 0, totalTimeMs: 0 },
   streak: { count: 0, lastPlayDate: null },
-  settings: { sound: true, reducedMotion: false, tuneT: 4.4, colorSafe: false, highContrast: false, hero3d: true },
+  settings: { sound: true, reducedMotion: false, tuneT: 4.4, colorSafe: false, highContrast: false, hero3d: true, music: true },
   hero: { name: '', job: 'rookie', hairColor: 1, skin: 1, outfit: 0, acc: 'none' },
   prologue: false,
   mode: 'case',
   coins: 60,
   hints: 3,
+  clocks: 2,
+  missions: { date: '', p: '', c: '' },
+  login: { date: '', streak: 0 },
   campaign: { stars: '' },
   codex: '',
   unlocked: '',
@@ -120,7 +126,7 @@ export function bumpStreak(state: Store, todayKey: string): Store {
   return state;
 }
 
-function yesterdayOf(key: string): string {
+export function yesterdayOf(key: string): string {
   const y = +key.slice(0, 4), m = +key.slice(4, 6), d = +key.slice(6, 8);
   const dt = new Date(Date.UTC(y, m - 1, d - 1));
   return `${dt.getUTCFullYear()}${String(dt.getUTCMonth() + 1).padStart(2, '0')}${String(dt.getUTCDate()).padStart(2, '0')}`;

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useEngine, useSnapshot } from '../hooks/useEngine';
 import { zoneOf, tierOf } from '../engine/story';
 import { heroTier } from '../engine/campaign';
+import { MODS } from '../engine/modifiers';
 import { Hero } from './Hero';
 import { BossFigure } from './BossFigure';
 
@@ -15,7 +16,7 @@ export function Hud({ onOpenSettings }: { onOpenSettings: () => void }) {
   useEffect(() => engine.onTick((left, limit) => {
     const g = gaugeRef.current;
     if (!g) return;
-    g.style.transform = `scaleX(${Math.max(0, left / limit)})`;
+    g.style.transform = `scaleX(${Math.min(1, Math.max(0, left / limit))})`; // 시계로 늘어난 시간은 게이지가 가득 찬 채로 보여 준다
     g.classList.toggle('warn', left / limit < 0.3);
   }), [engine]);
 
@@ -51,7 +52,7 @@ export function Hud({ onOpenSettings }: { onOpenSettings: () => void }) {
           <span className="k" id="zoneName">{cr ? `CASE ${cr.id} · ${cr.title}` : `ZONE ${z.idx + 1} · ${z.name}`}</span>
           <span className="hudStat">
             <span className="k">{cr ? 'ROUND' : 'STAGE'}</span><b id="stageNo">{cr ? `${cr.round}/${cr.rounds}` : snap.n}</b>
-            <span className="k">SCORE</span><b id="points">{snap.points.toLocaleString('ko-KR')}</b>
+            {!cr && <><span className="k">SCORE</span><b id="points">{snap.points.toLocaleString('ko-KR')}</b></>}  {/* 사건부에서는 점수 대신 별·코인이 목표다 */}
           </span>
         </div>
         {snap.combo >= 3 && (
@@ -60,16 +61,30 @@ export function Hud({ onOpenSettings }: { onOpenSettings: () => void }) {
           </span>
         )}
         <span className="sp">
-          {cr && (
-            <button className="icon hintBtn" id="btnHint" type="button" title="힌트 (H)" aria-label={`힌트 ${snap.store.hints}개`}
-              disabled={snap.hintIndex !== null} onClick={() => engine.useHint()}>💡<small>{snap.store.hints}</small></button>
-          )}
           <button className="icon" id="btnPause" type="button" title="일시정지 (P)" aria-label="일시정지"
             onClick={() => engine.togglePause()}>❙❙</button>
           <button className="icon" id="btnSettings" type="button" title="설정" aria-label="설정"
             onClick={onOpenSettings}>⚙</button>
         </span>
       </div>
+      {/* 아이템 줄: 이번 라운드의 변주 안내(왼쪽)와 힌트·시계 버튼(오른쪽). 줄은 항상 있어서 변주가 생겨도 화면이 밀리지 않는다 */}
+      {(cr || (snap.mode === 'normal' && snap.screen === 'PLAY')) && (
+        <div className="itemRow" id="itemRow">
+          {snap.modifier
+            ? (
+              <div className={'modChip ' + snap.modifier} id="modChip" key={snap.stageId}>
+                {MODS[snap.modifier].icon} {MODS[snap.modifier].label} — {MODS[snap.modifier].desc}
+              </div>
+            )
+            : <span className="itemSpacer" />}
+          <button className="icon hintBtn" id="btnClock" type="button" title="시계 +5초 (C)" aria-label={`시계 ${snap.store.clocks}개`}
+            onClick={() => engine.useClock()}>⏱<small>{snap.store.clocks}</small></button>
+          {cr && (
+            <button className="icon hintBtn" id="btnHint" type="button" title="힌트 (H)" aria-label={`힌트 ${snap.store.hints}개`}
+              disabled={snap.hintIndex !== null} onClick={() => engine.useHint()}>💡<small>{snap.store.hints}</small></button>
+          )}
+        </div>
+      )}
       {snap.boss && (
         <div className="bossBar" id="bossBar">
           <div className={'bossIcon' + (snap.boss.hitId > 0 ? ' hit' : '')} key={snap.boss.hitId}>
